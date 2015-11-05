@@ -26,3 +26,21 @@
 *.exe
 *.out
 *.app
+
+# CMSSW stuff
+HIPAnalysis_[0-9]*.py
+
+# Python stuff
+*.pyc
+__init__.py
+
+# CRAB3 stuff
+test/tasks/*
+crab_HIPAnalysis_[0-9]*py
+crab_config_[0-9]*.py
+test/outputs/*
+prod_*.json
+crab.log
+
+# ROOT stuff
+*.root
