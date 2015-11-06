@@ -8,7 +8,8 @@
  Description: [one line class summary]
 
  Implementation:
-     [Notes on implementation]
+        Inspiration from SiStripGainFromCalibTree.cc:
+        https://github.com/cms-sw/cmssw/blob/6b16de370881dd8ef339d34811b3d1e176c02b80/CalibTracker/SiStripChannelGain/plugins/SiStripGainFromCalibTree.cc
 */
 //
 // Original Author:  Olivier Bondu
@@ -189,8 +190,14 @@ HIPAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
                 for (unsigned int s = 0; s < (*nstrips)[icluster]; s++)
                 {
                     int StripCharge =  (*amplitude)[FirstAmplitude - (*nstrips)[icluster] + s];
-                    if (StripCharge > 253)
+                    if (StripCharge > 1023)
+                    {
                         nSaturatedStrips_++;
+                    }
+                    else if (StripCharge > 253)
+                    {
+                        nSaturatedStrips_++;
+                    }
                 }
                 nSaturatedStrips.push_back(nSaturatedStrips_);
                 if (nSaturatedStrips_ >= 3)
