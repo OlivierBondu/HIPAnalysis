@@ -4,8 +4,6 @@ process = cms.Process("HIPAnalysis")
 
 process.load("FWCore.MessageService.MessageLogger_cfi")
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1) )
-
 process.source = cms.Source("EmptySource",
 #process.source = cms.Source("PoolSource",
     # replace 'myfile.root' with the source file you want to use
@@ -312,8 +310,9 @@ for i in xrange(0, len(myFileList) / 10 + 1):
     myFileSubList.append(myFileList[i*10 : i*10 + 10])
 print "len(myFileSubList)=", len(myFileSubList)
 
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1) )
 
-process.HIPAnalysis = cms.EDAnalyzer('SiStripHIPAnalysis',
+process.HIPAnalysis = cms.EDAnalyzer('HIPAnalysis',
     maxEventsPerFile = cms.untracked.int64(10),
     InputFiles = cms.untracked.vstring(myFileSubList[0]),
     output = cms.string('output.root')
