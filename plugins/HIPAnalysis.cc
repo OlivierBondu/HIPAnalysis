@@ -76,6 +76,7 @@ class HIPAnalysis : public edm::EDAnalyzer {
         ROOT::TreeWrapper tree;
 
         BRANCH(run, unsigned int);
+        BRANCH(lumi, unsigned int);
         BRANCH(event, unsigned int);
         BRANCH(nTotEvents, unsigned int);
         BRANCH(nEvents, unsigned int);
@@ -104,12 +105,15 @@ HIPAnalysis::~HIPAnalysis()
 void
 HIPAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
-    for(unsigned int i=0;i<VInputFiles.size();i++)
+    unsigned long long ievent = iEvent.id().event();
+    std::cout << "ievent= " << ievent << std::endl;
+    unsigned long long ifile = ievent - 1;
+    if (ifile < VInputFiles.size())
     {
         std::cout << std::endl << "-----" << std::endl;
-        printf("Opening file %3i/%3i --> %s\n",i+1, (int)VInputFiles.size(), (char*)(VInputFiles[i].c_str())); fflush(stdout);
+        printf("Opening file %3llu/%3i --> %s\n", ifile + 1, (int)VInputFiles.size(), (char*)(VInputFiles[ifile].c_str())); fflush(stdout);
         TChain* intree = new TChain("gainCalibrationTree/tree");
-        intree->Add(VInputFiles[i].c_str());
+        intree->Add(VInputFiles[ifile].c_str());
 
         TString EventPrefix("");
         TString EventSuffix("");
@@ -160,6 +164,7 @@ HIPAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         for (unsigned int ientry = 0; ientry < maxEntries; ientry++)
         {
             run = runnumber;
+            lumi = luminumber;
             event = eventnumber;
             if (ientry % TreeStep == 0)
             {
@@ -175,15 +180,15 @@ HIPAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         	unsigned int FirstAmplitude = 0;
             nClusters = 0;
             nSaturatedStrips.clear();
-            for (unsigned int i = 0; i < (*chargeoverpath).size(); i++)
+            for (unsigned int icluster = 0; icluster < (*chargeoverpath).size(); icluster++)
             { // Loop over clusters
-                if (!(*saturation)[i]) continue;
+                if (!(*saturation)[icluster]) continue;
                 
-                FirstAmplitude += (*nstrips)[i];
+                FirstAmplitude += (*nstrips)[icluster];
                 int nSaturatedStrips_ = 0;
-                for (unsigned int s = 0; s < (*nstrips)[i]; s++)
+                for (unsigned int s = 0; s < (*nstrips)[icluster]; s++)
                 {
-                    int StripCharge =  (*amplitude)[FirstAmplitude - (*nstrips)[i] + s];
+                    int StripCharge =  (*amplitude)[FirstAmplitude - (*nstrips)[icluster] + s];
                     if (StripCharge > 253)
                         nSaturatedStrips_++;
                 }

@@ -310,7 +310,8 @@ for i in xrange(0, len(myFileList) / 10 + 1):
     myFileSubList.append(myFileList[i*10 : i*10 + 10])
 print "len(myFileSubList)=", len(myFileSubList)
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1) )
+# In this analyser, maxEvents actually represents the number of input files...
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10) )
 
 process.HIPAnalysis = cms.EDAnalyzer('HIPAnalysis',
     maxEventsPerFile = cms.untracked.int64(10),
