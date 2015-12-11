@@ -18,27 +18,34 @@
 //
 
 
-// system include files
-#include <memory>
 
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/EDAnalyzer.h"
-
+#include "FWCore/Framework/interface/ESHandle.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Utilities/interface/InputTag.h"
-#include "DataFormats/TrackReco/interface/Track.h"
-#include "DataFormats/TrackReco/interface/TrackFwd.h"
 #include "FWCore/ServiceRegistry/interface/Service.h"
 
+// Tracker geometry
+#include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
+#include "Geometry/TrackerGeometryBuilder/interface/StripGeomDetUnit.h"
+#include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
+#include "DataFormats/DetId/interface/DetId.h"
+#include "DataFormats/SiStripDetId/interface/StripSubdetector.h"
+#include "DataFormats/SiStripDetId/interface/SiStripDetId.h"
+
+// ROOT includes
 #include "TTree.h"
 #include "TChain.h"
 #include "TFile.h"
-
+// Utilities
 #include <CalibTracker/TreeWrapper/interface/TreeWrapper.h>
+// C++ includes
+#include <memory>
 #include <string>
 #include <algorithm>
 
@@ -79,6 +86,7 @@ class HIPAnalysis : public edm::EDAnalyzer {
         BRANCH(run, unsigned int);
         BRANCH(lumi, unsigned int);
         BRANCH(event, unsigned int);
+        BRANCH(subDetector, unsigned int);
         BRANCH(nTotEvents, unsigned int);
         BRANCH(nEvents, unsigned int);
         BRANCH(nTotTracks, unsigned int);
@@ -86,10 +94,6 @@ class HIPAnalysis : public edm::EDAnalyzer {
         BRANCH(nTotClusters, unsigned int);
         BRANCH(nClusters, unsigned int);
         BRANCH(nSaturatedStrips, std::vector<int>);
-        class isEqual{
-            public:
-		        template <class T> bool operator () (const T& PseudoDetId1, const T& PseudoDetId2) { return PseudoDetId1==PseudoDetId2; }
-        };
 };
 
 HIPAnalysis::~HIPAnalysis()
@@ -106,6 +110,13 @@ HIPAnalysis::~HIPAnalysis()
 void
 HIPAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
+    edm::ESHandle<TrackerGeometry> tkGeom;
+    iSetup.get<TrackerDigiGeometryRecord>().get( tkGeom );
+    std::cout << "StripSubdetector::TIB= " << (StripSubdetector::TIB) << std::endl;
+    std::cout << "StripSubdetector::TID= " << (StripSubdetector::TID) << std::endl;
+    std::cout << "StripSubdetector::TOB= " << (StripSubdetector::TOB) << std::endl;
+    std::cout << "StripSubdetector::TEC= " << (StripSubdetector::TEC) << std::endl;
+
     unsigned long long ievent = iEvent.id().event();
     std::cout << "ievent= " << ievent << std::endl;
     unsigned long long ifile = ievent - 1;
@@ -158,20 +169,14 @@ HIPAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         nTotClusters = nClusters = 0;
 
         printf("Number of Events = %i + %i = %i\n", nTotEvents, (unsigned int)intree->GetEntries(), (unsigned int)(nEvents + intree->GetEntries()));
-        int TreeStep = intree->GetEntries() / 50; if(TreeStep <= 1) TreeStep = 1;
-        printf("Progressing Bar              :0%%       20%%       40%%       60%%       80%%       100%%\n");
-        printf("Looping on the Tree          :");
         unsigned int maxEntries = m_max_events_per_file > 0 ? std::min(m_max_events_per_file, (Long64_t)intree->GetEntries()) : intree->GetEntries();
         for (unsigned int ientry = 0; ientry < maxEntries; ientry++)
         {
+            if (ientry%1000 == 0)
+                std::cout << "Processing event " << ientry << " / " << maxEntries << std::endl;
             run = runnumber;
             lumi = luminumber;
             event = eventnumber;
-            if (ientry % TreeStep == 0)
-            {
-                printf(".");
-                fflush(stdout);
-            }
             intree->GetEntry(ientry);
 
             nTotEvents++;
@@ -186,12 +191,16 @@ HIPAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
                 if (!(*saturation)[icluster]) continue;
                 
                 FirstAmplitude += (*nstrips)[icluster];
+                const SiStripDetId sistripdetid = SiStripDetId( (*rawid)[icluster] );
+                subDetector = sistripdetid.subDetector(); // returns: TIB:3 TID:4 TOB:5 TEC:6
+//                const GeomDetUnit* it = tkGeom->idToDetUnit(DetId( (*rawid)[icluster] ));
+//                std::cout << "it->subdetector= " << it->subDetector() << std::endl; // returns TID/TIB/TEC/TOB
                 int nSaturatedStrips_ = 0;
                 for (unsigned int s = 0; s < (*nstrips)[icluster]; s++)
                 {
                     int StripCharge =  (*amplitude)[FirstAmplitude - (*nstrips)[icluster] + s];
                     if (StripCharge > 1023)
-                    {
+                    { // Should be useless
                         nSaturatedStrips_++;
                     }
                     else if (StripCharge > 253)
