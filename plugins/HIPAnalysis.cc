@@ -86,13 +86,24 @@ class HIPAnalysis : public edm::EDAnalyzer {
         BRANCH(run, unsigned int);
         BRANCH(lumi, unsigned int);
         BRANCH(event, unsigned int);
+        BRANCH(bx, unsigned int);
         BRANCH(subDetector, unsigned int);
         BRANCH(nTotEvents, unsigned int);
         BRANCH(nEvents, unsigned int);
+        BRANCH(nEvents1, unsigned int);
+        BRANCH(nEvents2, unsigned int);
+        BRANCH(nEvents3, unsigned int);
+        BRANCH(nEvents4, unsigned int);
+        BRANCH(nEvents5, unsigned int);
         BRANCH(nTotTracks, unsigned int);
         BRANCH(nTracks, unsigned int);
         BRANCH(nTotClusters, unsigned int);
-        BRANCH(nClusters, unsigned int);
+        BRANCH(nSaturatedClusters, unsigned int);
+        BRANCH(nSaturatedClusters1, unsigned int);
+        BRANCH(nSaturatedClusters2, unsigned int);
+        BRANCH(nSaturatedClusters3, unsigned int);
+        BRANCH(nSaturatedClusters4, unsigned int);
+        BRANCH(nSaturatedClusters5, unsigned int);
         BRANCH(nSaturatedStrips, std::vector<int>);
 };
 
@@ -139,6 +150,7 @@ HIPAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         unsigned int                 eventnumber    = 0;    intree->SetBranchAddress(EventPrefix + "event"          + EventSuffix, &eventnumber   , NULL);
         unsigned int                 runnumber      = 0;    intree->SetBranchAddress(EventPrefix + "run"            + EventSuffix, &runnumber     , NULL);
         unsigned int                 luminumber     = 0;    intree->SetBranchAddress(EventPrefix + "lumi"           + EventSuffix, &luminumber    , NULL);
+        unsigned int                 bxnumber       = 0;    intree->SetBranchAddress(EventPrefix + "bx"             + EventSuffix, &bxnumber      , NULL);
         std::vector<bool>*           TrigTech       = 0;    intree->SetBranchAddress(EventPrefix + "TrigTech"       + EventSuffix, &TrigTech      , NULL);
 
         std::vector<double>*         trackchi2ndof  = 0;    intree->SetBranchAddress(TrackPrefix + "chi2ndof"       + TrackSuffix, &trackchi2ndof , NULL);
@@ -165,8 +177,18 @@ HIPAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         std::vector<double>*         gainused       = 0;    intree->SetBranchAddress(CalibPrefix + "gainused"       + CalibSuffix, &gainused      , NULL);
 
         nTotEvents = nEvents = 0;
+        nEvents1 = 0;
+        nEvents2 = 0;
+        nEvents3 = 0;
+        nEvents4 = 0;
+        nEvents5 = 0;
         nTotTracks = nTracks = 0;
-        nTotClusters = nClusters = 0;
+        nTotClusters = nSaturatedClusters = 0;
+        nSaturatedClusters1 = 0;
+        nSaturatedClusters2 = 0;
+        nSaturatedClusters3 = 0;
+        nSaturatedClusters4 = 0;
+        nSaturatedClusters5 = 0;
 
         printf("Number of Events = %i + %i = %i\n", nTotEvents, (unsigned int)intree->GetEntries(), (unsigned int)(nEvents + intree->GetEntries()));
         unsigned int maxEntries = m_max_events_per_file > 0 ? std::min(m_max_events_per_file, (Long64_t)intree->GetEntries()) : intree->GetEntries();
@@ -177,14 +199,21 @@ HIPAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             run = runnumber;
             lumi = luminumber;
             event = eventnumber;
+            bx = bxnumber;
             intree->GetEntry(ientry);
 
             nTotEvents++;
+            nTracks = (*trackp).size();
             nTotTracks += (*trackp).size();
             nTotClusters += (*chargeoverpath).size();
 
         	unsigned int FirstAmplitude = 0;
-            nClusters = 0;
+            nSaturatedClusters = 0;
+            nSaturatedClusters1 = 0;
+            nSaturatedClusters2 = 0;
+            nSaturatedClusters3 = 0;
+            nSaturatedClusters4 = 0;
+            nSaturatedClusters5 = 0;
             nSaturatedStrips.clear();
             for (unsigned int icluster = 0; icluster < (*chargeoverpath).size(); icluster++)
             { // Loop over clusters
@@ -209,16 +238,37 @@ HIPAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
                     }
                 }
                 nSaturatedStrips.push_back(nSaturatedStrips_);
+                if (nSaturatedStrips_ >= 1)
+                    nSaturatedClusters1++;
+                if (nSaturatedStrips_ >= 2)
+                    nSaturatedClusters2++;
                 if (nSaturatedStrips_ >= 3)
-                    nClusters++;
+                {
+                    nSaturatedClusters++;
+                    nSaturatedClusters3++;
+                }
+                if (nSaturatedStrips_ >= 4)
+                    nSaturatedClusters4++;
+                if (nSaturatedStrips_ >= 5)
+                    nSaturatedClusters5++;
 
             }// End of loop over clusters
-            if (nClusters > 0)
+            if (nSaturatedClusters > 0)
                 nEvents++;
+            if (nSaturatedClusters1 > 0)
+                nEvents1++;
+            if (nSaturatedClusters2 > 0)
+                nEvents2++;
+            if (nSaturatedClusters3 > 0)
+                nEvents3++;
+            if (nSaturatedClusters4 > 0)
+                nEvents4++;
+            if (nSaturatedClusters5 > 0)
+                nEvents5++;
 
         }printf("\n");// End of loop over events
 
-    std::cout << "nEvents / nTotEvents= " << nEvents << " / " << nTotEvents << "\tnTracks / nTotTracks= " << nTracks << " / " << nTotTracks << "\tnClusters / nTotClusters= " << nClusters << " / " << nTotClusters << std::endl;   
+    std::cout << "nEvents / nTotEvents= " << nEvents << " / " << nTotEvents << "\tnTracks / nTotTracks= " << nTracks << " / " << nTotTracks << "\tnSaturatedClusters / nTotClusters= " << nSaturatedClusters << " / " << nTotClusters << std::endl;   
 
     tree.fill();
 
