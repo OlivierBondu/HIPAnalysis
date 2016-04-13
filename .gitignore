@@ -1,31 +1,5 @@
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
+# Editor files
+*.swp
 
 # CMSSW stuff
 HIPAnalysis_[0-9]*.py
@@ -41,6 +15,10 @@ crab_config_[0-9]*.py
 test/outputs/*
 prod_*.json
 crab.log
+test/oldtasks/
 
 # ROOT stuff
 *.root
+
+# Plots
+python/plots*

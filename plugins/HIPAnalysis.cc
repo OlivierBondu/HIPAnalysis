@@ -83,28 +83,22 @@ class HIPAnalysis : public edm::EDAnalyzer {
         TTree* tree_ = new TTree("t", "t");
         ROOT::TreeWrapper tree;
 
+        unsigned int nSaturationLevels = 10;
         BRANCH(run, unsigned int);
         BRANCH(lumi, unsigned int);
         BRANCH(event, unsigned int);
         BRANCH(bx, unsigned int);
-        BRANCH(subDetector, unsigned int);
         BRANCH(nTotEvents, unsigned int);
-        BRANCH(nEvents, unsigned int);
-        BRANCH(nEvents1, unsigned int);
-        BRANCH(nEvents2, unsigned int);
-        BRANCH(nEvents3, unsigned int);
-        BRANCH(nEvents4, unsigned int);
-        BRANCH(nEvents5, unsigned int);
+        BRANCH(nEvents, std::vector<unsigned int>);
         BRANCH(nTotTracks, unsigned int);
         BRANCH(nTracks, unsigned int);
         BRANCH(nTotClusters, unsigned int);
-        BRANCH(nSaturatedClusters, unsigned int);
-        BRANCH(nSaturatedClusters1, unsigned int);
-        BRANCH(nSaturatedClusters2, unsigned int);
-        BRANCH(nSaturatedClusters3, unsigned int);
-        BRANCH(nSaturatedClusters4, unsigned int);
-        BRANCH(nSaturatedClusters5, unsigned int);
-        BRANCH(nSaturatedStrips, std::vector<int>);
+        BRANCH(nSaturatedClusters, std::vector<unsigned int>);
+        BRANCH(nSaturatedStrips, std::vector<unsigned int>);
+        BRANCH(subDetector, std::vector<unsigned int>);
+        BRANCH(saturatedCharge, std::vector<std::vector<unsigned int>>);
+        BRANCH(saturatedChargeoverpath, std::vector<std::vector<unsigned int>>);
+        BRANCH(saturatedAmplitude, std::vector<std::vector<unsigned int>>);
 };
 
 HIPAnalysis::~HIPAnalysis()
@@ -176,25 +170,22 @@ HIPAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         std::vector<unsigned char>*  amplitude      = 0;    intree->SetBranchAddress(CalibPrefix + "amplitude"      + CalibSuffix, &amplitude     , NULL);
         std::vector<double>*         gainused       = 0;    intree->SetBranchAddress(CalibPrefix + "gainused"       + CalibSuffix, &gainused      , NULL);
 
-        nTotEvents = nEvents = 0;
-        nEvents1 = 0;
-        nEvents2 = 0;
-        nEvents3 = 0;
-        nEvents4 = 0;
-        nEvents5 = 0;
+        nTotEvents = 0;
+        nEvents.clear();
+        for (unsigned int i = 0; i < nSaturationLevels; i++)
+            { nEvents.push_back(0); }
         nTotTracks = nTracks = 0;
-        nTotClusters = nSaturatedClusters = 0;
-        nSaturatedClusters1 = 0;
-        nSaturatedClusters2 = 0;
-        nSaturatedClusters3 = 0;
-        nSaturatedClusters4 = 0;
-        nSaturatedClusters5 = 0;
+        nTotClusters = 0;
 
-        printf("Number of Events = %i + %i = %i\n", nTotEvents, (unsigned int)intree->GetEntries(), (unsigned int)(nEvents + intree->GetEntries()));
+        nSaturatedClusters.clear();
+        for (unsigned int i = 0; i < nSaturationLevels; i++)
+            { nSaturatedClusters.push_back(0); }
+
+        printf("Number of Events = %i + %i = %i\n", nTotEvents, (unsigned int)intree->GetEntries(), (unsigned int)(nEvents[0] + intree->GetEntries()));
         unsigned int maxEntries = m_max_events_per_file > 0 ? std::min(m_max_events_per_file, (Long64_t)intree->GetEntries()) : intree->GetEntries();
         for (unsigned int ientry = 0; ientry < maxEntries; ientry++)
         {
-            if (ientry%1000 == 0)
+            if ((ientry % 1000 == 0 && ientry < 10000) || (ientry % 10000 == 0))
                 std::cout << "Processing event " << ientry << " / " << maxEntries << std::endl;
             run = runnumber;
             lumi = luminumber;
@@ -208,67 +199,77 @@ HIPAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             nTotClusters += (*chargeoverpath).size();
 
         	unsigned int FirstAmplitude = 0;
-            nSaturatedClusters = 0;
-            nSaturatedClusters1 = 0;
-            nSaturatedClusters2 = 0;
-            nSaturatedClusters3 = 0;
-            nSaturatedClusters4 = 0;
-            nSaturatedClusters5 = 0;
+            for (unsigned int i = 0; i < nSaturationLevels; i++)
+                { nSaturatedClusters[i] = 0; }
             nSaturatedStrips.clear();
+            subDetector.clear();
+            std::vector<unsigned int> saturatedCharge_;
+            saturatedCharge_.clear();
+            saturatedCharge.clear();
+            std::vector<unsigned int> saturatedChargeoverpath_;
+            saturatedChargeoverpath_.clear();
+            saturatedChargeoverpath.clear();
+            std::vector<unsigned int> saturatedAmplitude_;
+            saturatedAmplitude_.clear();
+            saturatedAmplitude.clear();
+            for (unsigned int i = 0; i < nSaturationLevels; i++)
+            {
+                saturatedCharge.push_back(saturatedCharge_); 
+                saturatedChargeoverpath.push_back(saturatedChargeoverpath_); 
+                saturatedAmplitude.push_back(saturatedAmplitude_); 
+            }
             for (unsigned int icluster = 0; icluster < (*chargeoverpath).size(); icluster++)
             { // Loop over clusters
-                if (!(*saturation)[icluster]) continue;
+// Keep all clusters (for now)
+//                if (!(*saturation)[icluster]) continue;
                 
                 FirstAmplitude += (*nstrips)[icluster];
                 const SiStripDetId sistripdetid = SiStripDetId( (*rawid)[icluster] );
-                subDetector = sistripdetid.subDetector(); // returns: TIB:3 TID:4 TOB:5 TEC:6
-//                const GeomDetUnit* it = tkGeom->idToDetUnit(DetId( (*rawid)[icluster] ));
-//                std::cout << "it->subdetector= " << it->subDetector() << std::endl; // returns TID/TIB/TEC/TOB
-                int nSaturatedStrips_ = 0;
+                unsigned int subDetector_ = sistripdetid.subDetector(); // returns: TIB:3 TID:4 TOB:5 TEC:6
+                unsigned int nSaturatedStrips_ = 0;
+// Except if they are not SiStrip clusters
+                if (subDetector_ < 3) { continue; }
                 for (unsigned int s = 0; s < (*nstrips)[icluster]; s++)
                 {
                     int StripCharge =  (*amplitude)[FirstAmplitude - (*nstrips)[icluster] + s];
                     if (StripCharge > 1023)
                     { // Should be useless
                         nSaturatedStrips_++;
+                        saturatedCharge_.push_back((*charge)[FirstAmplitude - (*nstrips)[icluster] + s]);
+                        saturatedChargeoverpath_.push_back((*chargeoverpath)[FirstAmplitude - (*nstrips)[icluster] + s]);
+                        saturatedAmplitude_.push_back((*amplitude)[FirstAmplitude - (*nstrips)[icluster] + s]);
                     }
                     else if (StripCharge > 253)
                     {
                         nSaturatedStrips_++;
+                        saturatedCharge_.push_back((*charge)[FirstAmplitude - (*nstrips)[icluster] + s]);
+                        saturatedChargeoverpath_.push_back((*chargeoverpath)[FirstAmplitude - (*nstrips)[icluster] + s]);
+                        saturatedAmplitude_.push_back((*amplitude)[FirstAmplitude - (*nstrips)[icluster] + s]);
                     }
                 }
                 nSaturatedStrips.push_back(nSaturatedStrips_);
-                if (nSaturatedStrips_ >= 1)
-                    nSaturatedClusters1++;
-                if (nSaturatedStrips_ >= 2)
-                    nSaturatedClusters2++;
-                if (nSaturatedStrips_ >= 3)
+                subDetector.push_back(subDetector_);
+                for (unsigned int i = 0; i < nSaturationLevels; i++)
                 {
-                    nSaturatedClusters++;
-                    nSaturatedClusters3++;
+                    if (nSaturatedStrips_ >= i)
+                    {
+                        nSaturatedClusters[i]++;
+                        saturatedCharge[i] = saturatedCharge_;
+                        saturatedChargeoverpath[i] = saturatedChargeoverpath_;
+                        saturatedAmplitude[i] = saturatedAmplitude_;
+                    }
                 }
-                if (nSaturatedStrips_ >= 4)
-                    nSaturatedClusters4++;
-                if (nSaturatedStrips_ >= 5)
-                    nSaturatedClusters5++;
 
             }// End of loop over clusters
-            if (nSaturatedClusters > 0)
-                nEvents++;
-            if (nSaturatedClusters1 > 0)
-                nEvents1++;
-            if (nSaturatedClusters2 > 0)
-                nEvents2++;
-            if (nSaturatedClusters3 > 0)
-                nEvents3++;
-            if (nSaturatedClusters4 > 0)
-                nEvents4++;
-            if (nSaturatedClusters5 > 0)
-                nEvents5++;
+            for (unsigned int i = 0; i < nSaturationLevels; i++)
+            {
+                if (nSaturatedClusters[i] > 0)
+                    nEvents[i]++;
+            }
 
         }printf("\n");// End of loop over events
 
-    std::cout << "nEvents / nTotEvents= " << nEvents << " / " << nTotEvents << "\tnTracks / nTotTracks= " << nTracks << " / " << nTotTracks << "\tnSaturatedClusters / nTotClusters= " << nSaturatedClusters << " / " << nTotClusters << std::endl;   
+    std::cout << "nEvents / nTotEvents= " << nEvents[0] << " / " << nTotEvents << "\tnTracks / nTotTracks= " << nTracks << " / " << nTotTracks << "\tnSaturatedClusters / nTotClusters= " << nSaturatedClusters[3] << " / " << nTotClusters << std::endl;   
 
     tree.fill();
 
