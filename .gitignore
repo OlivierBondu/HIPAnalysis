@@ -15,6 +15,10 @@ crab_config_[0-9]*.py
 test/outputs/*
 prod_*.json
 crab.log
+test/oldtasks/
 
 # ROOT stuff
 *.root
+
+# Plots
+python/plots*
