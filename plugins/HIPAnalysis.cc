@@ -88,7 +88,6 @@ class HIPAnalysis : public edm::EDAnalyzer {
         BRANCH(lumi, unsigned int);
         BRANCH(event, unsigned int);
         BRANCH(bx, unsigned int);
-        BRANCH(subDetector, unsigned int);
         BRANCH(nTotEvents, unsigned int);
         BRANCH(nEvents, std::vector<unsigned int>);
         BRANCH(nTotTracks, unsigned int);
@@ -96,6 +95,10 @@ class HIPAnalysis : public edm::EDAnalyzer {
         BRANCH(nTotClusters, unsigned int);
         BRANCH(nSaturatedClusters, std::vector<unsigned int>);
         BRANCH(nSaturatedStrips, std::vector<unsigned int>);
+        BRANCH(subDetector, std::vector<unsigned int>);
+        BRANCH(saturatedCharge, std::vector<std::vector<unsigned int>>);
+        BRANCH(saturatedChargeoverpath, std::vector<std::vector<unsigned int>>);
+        BRANCH(saturatedAmplitude, std::vector<std::vector<unsigned int>>);
 };
 
 HIPAnalysis::~HIPAnalysis()
@@ -198,35 +201,63 @@ HIPAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         	unsigned int FirstAmplitude = 0;
             for (unsigned int i = 0; i < nSaturationLevels; i++)
                 { nSaturatedClusters[i] = 0; }
-//            nSaturatedClusters = 0;
             nSaturatedStrips.clear();
+            subDetector.clear();
+            std::vector<unsigned int> saturatedCharge_;
+            saturatedCharge_.clear();
+            saturatedCharge.clear();
+            std::vector<unsigned int> saturatedChargeoverpath_;
+            saturatedChargeoverpath_.clear();
+            saturatedChargeoverpath.clear();
+            std::vector<unsigned int> saturatedAmplitude_;
+            saturatedAmplitude_.clear();
+            saturatedAmplitude.clear();
+            for (unsigned int i = 0; i < nSaturationLevels; i++)
+            {
+                saturatedCharge.push_back(saturatedCharge_); 
+                saturatedChargeoverpath.push_back(saturatedChargeoverpath_); 
+                saturatedAmplitude.push_back(saturatedAmplitude_); 
+            }
             for (unsigned int icluster = 0; icluster < (*chargeoverpath).size(); icluster++)
             { // Loop over clusters
-                if (!(*saturation)[icluster]) continue;
+// Keep all clusters (for now)
+//                if (!(*saturation)[icluster]) continue;
                 
                 FirstAmplitude += (*nstrips)[icluster];
                 const SiStripDetId sistripdetid = SiStripDetId( (*rawid)[icluster] );
-                subDetector = sistripdetid.subDetector(); // returns: TIB:3 TID:4 TOB:5 TEC:6
-//                const GeomDetUnit* it = tkGeom->idToDetUnit(DetId( (*rawid)[icluster] ));
-//                std::cout << "it->subdetector= " << it->subDetector() << std::endl; // returns TID/TIB/TEC/TOB
+                unsigned int subDetector_ = sistripdetid.subDetector(); // returns: TIB:3 TID:4 TOB:5 TEC:6
                 unsigned int nSaturatedStrips_ = 0;
+// Except if they are not SiStrip clusters
+                if (subDetector_ < 3) { continue; }
                 for (unsigned int s = 0; s < (*nstrips)[icluster]; s++)
                 {
                     int StripCharge =  (*amplitude)[FirstAmplitude - (*nstrips)[icluster] + s];
                     if (StripCharge > 1023)
                     { // Should be useless
                         nSaturatedStrips_++;
+                        saturatedCharge_.push_back((*charge)[FirstAmplitude - (*nstrips)[icluster] + s]);
+                        saturatedChargeoverpath_.push_back((*chargeoverpath)[FirstAmplitude - (*nstrips)[icluster] + s]);
+                        saturatedAmplitude_.push_back((*amplitude)[FirstAmplitude - (*nstrips)[icluster] + s]);
                     }
                     else if (StripCharge > 253)
                     {
                         nSaturatedStrips_++;
+                        saturatedCharge_.push_back((*charge)[FirstAmplitude - (*nstrips)[icluster] + s]);
+                        saturatedChargeoverpath_.push_back((*chargeoverpath)[FirstAmplitude - (*nstrips)[icluster] + s]);
+                        saturatedAmplitude_.push_back((*amplitude)[FirstAmplitude - (*nstrips)[icluster] + s]);
                     }
                 }
                 nSaturatedStrips.push_back(nSaturatedStrips_);
+                subDetector.push_back(subDetector_);
                 for (unsigned int i = 0; i < nSaturationLevels; i++)
                 {
                     if (nSaturatedStrips_ >= i)
+                    {
                         nSaturatedClusters[i]++;
+                        saturatedCharge[i] = saturatedCharge_;
+                        saturatedChargeoverpath[i] = saturatedChargeoverpath_;
+                        saturatedAmplitude[i] = saturatedAmplitude_;
+                    }
                 }
 
             }// End of loop over clusters
