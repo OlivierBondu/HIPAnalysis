@@ -39,7 +39,7 @@ vars = {
 #"subDetector": ["subDetector", "#Clusters:subDetector"],
 "nSaturatedStrips": ["nSaturatedStrips", "#Clusters:nSaturatedStrips"],
 "@nSaturatedStrips.size()": ["nClusters", "#Events:nClusters"], # == nSaturatedClusters[0]
-"saturatedCharge[1]
+#"saturatedCharge[1]
 "nSaturatedClusters[0]": ["nSaturatedClusters_0", "#Events:nClusters w/ (nSaturatedStrips #geq 0)"],
 "nSaturatedClusters[1]": ["nSaturatedClusters_1", "#Events:nClusters w/ (nSaturatedStrips #geq 1)"],
 "nSaturatedClusters[2]": ["nSaturatedClusters_2", "#Events:nClusters w/ (nSaturatedStrips #geq 2)"],
