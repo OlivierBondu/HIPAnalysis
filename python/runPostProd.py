@@ -69,10 +69,15 @@ def runPostProd(indir, outtreedir):
     # Get the info itself
     with open('allcalibtrees.csv') as f:
         for line in f:
+            if 'Summary' in line:
+                break
             if '#' in line:
                 continue
             # 247243:3829,1:0,06/06/15 12:55:37,STABLE BEAMS,6500,460.468,0.000,17.2,BCM1F^M
+            #257490:4420,1:1,09/25/15 18:55:00,STABLE BEAMS,6500,59085.017,57661.731,0.0,PXL^M
             l = line.strip().replace(':', ',', 1).split(',')
+            if len(l) < (max(irun, ifill, ils, itime, idelivered, irecorded, iavgpu) + 1):
+                continue
             brilInfo[l[itime]] = {}
             brilInfo[l[itime]]['run'] = int(l[irun])
             brilInfo[l[itime]]['fill'] = int(l[ifill])
@@ -91,13 +96,13 @@ def runPostProd(indir, outtreedir):
         os.makedirs(outtreedir)
     outFile = outtreedir + '/output.root'
     newFile = TFile(outFile, 'recreate')
-    for treename in ['eventtree', 'clustertree']: # ["t"]
+    for treename in ['eventtree']: #, 'clustertree']: # ["t"]
         chain = TChain(treename)
         chain.Add(indir + 'output_30*root')
         t = chain.CloneTree(0)
         nEntries = chain.GetEntries()
         nSkipped = 0
-        print '\tnEntries=', nEntries
+        print '\ttree=', treename, 'nEntries=', nEntries
         delivered = array('f', [0.])
         recorded = array('f', [0.])
         avgpu = array('f', [0.])
@@ -105,6 +110,8 @@ def runPostProd(indir, outtreedir):
         t.Branch('brilcalc_recorded', recorded, 'brilcalc_recorded/F' )
         t.Branch('brilcalc_avgpu', avgpu, 'brilcalc_avgpu/F' )
         for i in range(chain.GetEntries()):
+            if (i % 1000 == 0 and i < 10000) or (i % 10000 == 0):
+                print '\t\t\tTreating event i= %i / %i (%.1f %%)' % (i, nEntries, float(i)/float(nEntries) * 100.)
             chain.GetEntry(i)
     #        print chain.run
             hasLumiInfo = False

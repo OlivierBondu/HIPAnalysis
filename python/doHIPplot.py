@@ -9,8 +9,8 @@ import numpy as np
 #taskdir = "160405_120842/0000/"
 outdir = ''
 eosdir = ''
-taskdir = 'HIPCalibTrees_160412bis/'
-plotdir = "plots_160413"
+taskdir = 'HIPCalibTrees_160418_firsttry/'
+plotdir = "plots_160420_firsttry"
 # ROOT setup
 import ROOT
 from ROOT import TChain, TCanvas, TLatex
@@ -21,7 +21,7 @@ ROOT.gStyle.SetOptStat(0)
 ROOT.gROOT.ProcessLine(".x setTDRStyle.C")
 ROOT.TGaxis.SetMaxDigits(3)
 
-chain = TChain("t")
+chain = TChain("eventtree")
 chain.Add(os.path.join(outdir, eosdir, taskdir) + "output*root")
 print "chain.GetEntries()=", chain.GetEntries()
 
@@ -37,18 +37,17 @@ ROOT.TColor.CreateGradientColorTable(9, stops, red, green, blue, 255, 1)
 
 vars = {
 #"subDetector": ["subDetector", "#Clusters:subDetector"],
-"nSaturatedStrips": ["nSaturatedStrips", "#Clusters:nSaturatedStrips"],
-"@nSaturatedStrips.size()": ["nClusters", "#Events:nClusters"], # == nSaturatedClusters[0]
+#"nSaturatedStrips": ["nSaturatedStrips", "#Clusters:nSaturatedStrips"],
+#"@nSaturatedStrips.size()": ["nClusters", "#Events:nClusters"], # == nSaturatedClusters[0]
 #"saturatedCharge[1]
 "nSaturatedClusters[0]": ["nSaturatedClusters_0", "#Events:nClusters w/ (nSaturatedStrips #geq 0)"],
 "nSaturatedClusters[1]": ["nSaturatedClusters_1", "#Events:nClusters w/ (nSaturatedStrips #geq 1)"],
 "nSaturatedClusters[2]": ["nSaturatedClusters_2", "#Events:nClusters w/ (nSaturatedStrips #geq 2)"],
 "nSaturatedClusters[3]": ["nSaturatedClusters_3", "#Events:nClusters w/ (nSaturatedStrips #geq 3)"],
 "nSaturatedClusters[4]": ["nSaturatedClusters_4", "#Events:nClusters w/ (nSaturatedStrips #geq 4)"],
-"nTracks": ["nTracks", "#Events:nTracks"],
-"nTotTracks": ["nTotTracks", "#Events:nTotTracks"],
-"bx": ["bx", "#Events:Bunch Crossing"],
-"(brilcalc_recorded/1000.)": ["lumi", "#Events:recorded lumi (nb)"],
+"nTracks_": ["nTracks", "#Events:nTracks"],
+"bx_": ["bx", "#Events:Bunch Crossing"],
+"(brilcalc_recorded/1000.)": ["lumi", "#Events:inst. rec. lumi (nb)"],
 "brilcalc_avgpu": ["pu", "#Events:<pu>"],
 
 #"": ["", ":"],
@@ -64,32 +63,32 @@ vars = {
 #"(nClusters / nSaturatedClusters[0]):lumi": "nClusters_o_nTotClusters_vs_lumi",
 "(nSaturatedClusters[1] / nSaturatedClusters[0]):(brilcalc_recorded/1000.)": ["nSaturatedClusters_1_o_nTotClusters_vs_lumi", "nSaturatedClusters (1) / nTotClusters:recorded lumi (nb)", [11.5e-6, 13.5e-6]],
 "(nSaturatedClusters[1] / nSaturatedClusters[0]):brilcalc_avgpu": ["nSaturatedClusters_1_o_nTotClusters_vs_pu", "nSaturatedClusters (1)/ nTotClusters:<pu>", [10e-6, 25e-6]],
-"(nSaturatedClusters[1] / nSaturatedClusters[0]):bx": ["nSaturatedClusters_1_o_nTotClusters_vs_bx", "nSaturatedClusters (1)/ nTotClusters:bx", [10.e-6, 25e-6]],
-"(nSaturatedClusters[1] / nSaturatedClusters[0]):nTracks": ["nSaturatedClusters_1_o_nTotClusters_vs_nTracks", "nSaturatedClusters (1)/ nTotClusters:nTracks", [10e-6, 25e-6]],
-"saturatedCharge[1]:(brilcalc_recorded/1000.)": ["", ":"],
+"(nSaturatedClusters[1] / nSaturatedClusters[0]):bx_": ["nSaturatedClusters_1_o_nTotClusters_vs_bx", "nSaturatedClusters (1)/ nTotClusters:bx", [10.e-6, 25e-6]],
+"(nSaturatedClusters[1] / nSaturatedClusters[0]):nTracks_": ["nSaturatedClusters_1_o_nTotClusters_vs_nTracks", "nSaturatedClusters (1)/ nTotClusters:nTracks", [10e-6, 25e-6]],
+#"saturatedCharge[1]:(brilcalc_recorded/1000.)": ["", ":"],
 
-"(nSaturatedClusters[2] / nSaturatedClusters[0]):(brilcalc_recorded/1000.)": ["nSaturatedClusters_2_o_nTotClusters_vs_lumi", "nSaturatedClusters (2) / nTotClusters:recorded lumi (nb)", [0.4e-6, 0.8e-6]],
-"(nSaturatedClusters[2] / nSaturatedClusters[0]):brilcalc_avgpu": ["nSaturatedClusters_2_o_nTotClusters_vs_pu", "nSaturatedClusters (2)/ nTotClusters:<pu>", [0.25e-6, 2e-6]],
-"(nSaturatedClusters[2] / nSaturatedClusters[0]):bx": ["nSaturatedClusters_2_o_nTotClusters_vs_bx", "nSaturatedClusters (2)/ nTotClusters:bx", [0.25e-6, 2.1e-6]],
-"(nSaturatedClusters[2] / nSaturatedClusters[0]):nTracks": ["nSaturatedClusters_2_o_nTotClusters_vs_nTracks", "nSaturatedClusters (2)/ nTotClusters:nTracks", [0.25e-6, 1.5e-6]],
+#"(nSaturatedClusters[2] / nSaturatedClusters[0]):(brilcalc_recorded/1000.)": ["nSaturatedClusters_2_o_nTotClusters_vs_lumi", "nSaturatedClusters (2) / nTotClusters:recorded lumi (nb)", [0.4e-6, 0.8e-6]],
+#"(nSaturatedClusters[2] / nSaturatedClusters[0]):brilcalc_avgpu": ["nSaturatedClusters_2_o_nTotClusters_vs_pu", "nSaturatedClusters (2)/ nTotClusters:<pu>", [0.25e-6, 2e-6]],
+#"(nSaturatedClusters[2] / nSaturatedClusters[0]):bx": ["nSaturatedClusters_2_o_nTotClusters_vs_bx", "nSaturatedClusters (2)/ nTotClusters:bx", [0.25e-6, 2.1e-6]],
+#"(nSaturatedClusters[2] / nSaturatedClusters[0]):nTracks": ["nSaturatedClusters_2_o_nTotClusters_vs_nTracks", "nSaturatedClusters (2)/ nTotClusters:nTracks", [0.25e-6, 1.5e-6]],
 
-"(nSaturatedClusters[3] / nSaturatedClusters[0]):(brilcalc_recorded/1000.)": ["nSaturatedClusters_3_o_nTotClusters_vs_lumi", "nSaturatedClusters (3) / nTotClusters:recorded lumi (nb)", [0.15e-6, 0.3e-6]],
-"(nSaturatedClusters[3] / nSaturatedClusters[0]):brilcalc_avgpu": ["nSaturatedClusters_3_o_nTotClusters_vs_pu", "nSaturatedClusters (3)/ nTotClusters:<pu>", [0, 1e-6]],
-"(nSaturatedClusters[3] / nSaturatedClusters[0]):bx": ["nSaturatedClusters_3_o_nTotClusters_vs_bx", "nSaturatedClusters (3)/ nTotClusters:bx", [0.15, 0.4e-6]],
-"(nSaturatedClusters[3] / nSaturatedClusters[0]):nTracks": ["nSaturatedClusters_3_o_nTotClusters_vs_nTracks", "nSaturatedClusters (3)/ nTotClusters:nTracks", [0, 0.8e-6]],
+#"(nSaturatedClusters[3] / nSaturatedClusters[0]):(brilcalc_recorded/1000.)": ["nSaturatedClusters_3_o_nTotClusters_vs_lumi", "nSaturatedClusters (3) / nTotClusters:recorded lumi (nb)", [0.15e-6, 0.3e-6]],
+#"(nSaturatedClusters[3] / nSaturatedClusters[0]):brilcalc_avgpu": ["nSaturatedClusters_3_o_nTotClusters_vs_pu", "nSaturatedClusters (3)/ nTotClusters:<pu>", [0, 1e-6]],
+#"(nSaturatedClusters[3] / nSaturatedClusters[0]):bx": ["nSaturatedClusters_3_o_nTotClusters_vs_bx", "nSaturatedClusters (3)/ nTotClusters:bx", [0.15, 0.4e-6]],
+#"(nSaturatedClusters[3] / nSaturatedClusters[0]):nTracks": ["nSaturatedClusters_3_o_nTotClusters_vs_nTracks", "nSaturatedClusters (3)/ nTotClusters:nTracks", [0, 0.8e-6]],
 
-"(nSaturatedClusters[4] / nSaturatedClusters[0]):(brilcalc_recorded/1000.)": ["nSaturatedClusters_4_o_nTotClusters_vs_lumi", "nSaturatedClusters (4) / nTotClusters:recorded lumi (nb)", [0, 5e-6]],
-"(nSaturatedClusters[4] / nSaturatedClusters[0]):brilcalc_avgpu": ["nSaturatedClusters_4_o_nTotClusters_vs_pu", "nSaturatedClusters (4)/ nTotClusters:<pu>", [0, 5e-6]],
-"(nSaturatedClusters[4] / nSaturatedClusters[0]):bx": ["nSaturatedClusters_4_o_nTotClusters_vs_bx", "nSaturatedClusters (4)/ nTotClusters:bx", [0, 5e-6]],
-"(nSaturatedClusters[4] / nSaturatedClusters[0]):nTracks": ["nSaturatedClusters_4_o_nTotClusters_vs_nTracks", "nSaturatedClusters (4)/ nTotClusters:nTracks", [0, 5e-6]],
+#"(nSaturatedClusters[4] / nSaturatedClusters[0]):(brilcalc_recorded/1000.)": ["nSaturatedClusters_4_o_nTotClusters_vs_lumi", "nSaturatedClusters (4) / nTotClusters:recorded lumi (nb)", [0, 5e-6]],
+#"(nSaturatedClusters[4] / nSaturatedClusters[0]):brilcalc_avgpu": ["nSaturatedClusters_4_o_nTotClusters_vs_pu", "nSaturatedClusters (4)/ nTotClusters:<pu>", [0, 5e-6]],
+#"(nSaturatedClusters[4] / nSaturatedClusters[0]):bx": ["nSaturatedClusters_4_o_nTotClusters_vs_bx", "nSaturatedClusters (4)/ nTotClusters:bx", [0, 5e-6]],
+#"(nSaturatedClusters[4] / nSaturatedClusters[0]):nTracks": ["nSaturatedClusters_4_o_nTotClusters_vs_nTracks", "nSaturatedClusters (4)/ nTotClusters:nTracks", [0, 5e-6]],
 }
 
 cuts = {
 "allTracker": "1", 
-#"TIB": "subDetector == 3",
-#"TID": "subDetector == 4",
-#"TOB": "subDetector == 5",
-#"TEC": "subDetector == 6"
+#"TIB": "subDetector_ == 3",
+#"TID": "subDetector_ == 4",
+#"TOB": "subDetector_ == 5",
+#"TEC": "subDetector_ == 6"
 }
 
 for icut, cut in enumerate(cuts):
