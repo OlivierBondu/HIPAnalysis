@@ -13,16 +13,16 @@ ROOT.gROOT.Reset()
 ROOT.gROOT.SetBatch()
 
 def getLumiJSON(indir, outjson = 'allcalibtrees.json'):
-    chain = TChain("t")
-    chain.Add(indir + "output_*root")
+    chain = TChain("eventtree")
+    chain.Add(indir + "output_30*root")
     print "chain.GetEntries()=", chain.GetEntries()
     
     runlist = {}
     
     for i in xrange(chain.GetEntries()):
         chain.GetEntry(i)
-        r = int(chain.run)
-        ls = int(chain.lumi)
+        r = int(chain.run_)
+        ls = int(chain.lumi_)
         if r not in runlist:
             runlist[r] = []
         runlist[r].append(ls)

@@ -51,7 +51,7 @@ def compute_luminosity(d, options):
         print('')
 
 #        cmds = ['brilcalc', 'lumi', '--normtag', '~lumipro/public/normtag_file/OfflineNormtagV2.json', '--output-style', 'csv', '-i', '"%s"' % str(sample.processed_lumi.replace('"', ''))]
-        cmds = ['brilcalc', 'lumi', '--output-style', 'csv', '-i', '"%s"' % str(d), '--byls']
+        cmds = ['brilcalc', 'lumi', '--normtag', '/afs/cern.ch/user/l/lumipro/public/normtag_file/moriond16_normtag.json', '--output-style', 'csv', '-i', '"%s"' % str(d), '--byls']
         cmd = 'export PATH="$HOME/.local/bin:/afs/cern.ch/cms/lumi/brilconda-1.0.3/bin:$PATH"; ' + ' '.join(cmds)
         ssh_cmds = ['ssh', '%s@lxplus.cern.ch' % options.username, cmd]
         brilcalc_result = subprocess.check_output(ssh_cmds)
