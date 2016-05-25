@@ -52,7 +52,7 @@
 #define EVENTBRANCH(NAME, ...) __VA_ARGS__& NAME = eventtree[#NAME].write<__VA_ARGS__>()
 #define CLUSTERBRANCH(NAME, ...) __VA_ARGS__& NAME = clustertree[#NAME].write<__VA_ARGS__>()
 
-#define HIPDEBUG 0
+#define HIPDEBUG 1
 
 //
 // class declaration
@@ -146,7 +146,8 @@ HIPAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     {
         std::cout << std::endl << "-----" << std::endl;
         printf("Opening file %3llu/%3i --> %s\n", ifile + 1, (int)VInputFiles.size(), (char*)(VInputFiles[ifile].c_str())); fflush(stdout);
-        TChain* intree = new TChain("gainCalibrationTree/tree");
+//        TChain* intree = new TChain("gainCalibrationTree/tree");
+        TChain* intree = new TChain("testTree/tree");
         intree->Add(VInputFiles[ifile].c_str());
 
         TString EventPrefix("");
@@ -287,8 +288,9 @@ HIPAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
                     }
                     if (HIPDEBUG) { std::cout 
                         << "cluster # " << icluster
-                        << "\tcharge= " << totalCharge
-                        << "\tchargeoverpath= " << totalChargeoverpath
+                        << "\tcharge= " << (*charge)[icluster]
+                        << "\tpath= " << (*path)[icluster]
+                        << "\tchargeoverpath= " << (*chargeoverpath)[icluster]
                         << "\tgainused= " << (*gainused)[icluster]
                         << "\tstrip # " << s
                         << "\tamplitude= " << (int)StripAmplitude

@@ -11,10 +11,14 @@ process.GlobalTag.globaltag = "74X_dataRun2_Prompt_v1"
 process.source = cms.Source("EmptySource",)
 
 myFileList = []
-filelist = "data/list_calibTrees_2015-12-11.txt"
+#filelist = "data/list_calibTrees_2015-12-11.txt"
+#filelist = "data/list_calibTrees_SDV_HIP_2016-05-16_00.txt"
+#filelist = "data/list_calibTrees_SDV_HIP_2016-05-16_01.txt"
+filelist = "data/list_calibTrees_SDV_HIP_2016-05-16_02.txt"
 with open(filelist) as f:
     for line in f:
-        myFileList.append('root://eoscms.cern.ch//eos/cms' + line.strip('\n'));
+#        myFileList.append('root://eoscms.cern.ch//eos/cms' + line.strip('\n'));
+         myFileList.append(line.strip('\n'));
 #print myFileList
 
 # TEST FILE
@@ -33,7 +37,10 @@ process.HIPAnalysis = cms.EDAnalyzer('HIPAnalysis',
     maxEventsPerFile = cms.untracked.int64(-1),
 #    InputFiles = cms.untracked.vstring(myFileSubList[0]),
     InputFiles = cms.untracked.vstring(myFileList),
-    output = cms.string('output.root')
+#    output = cms.string('output.root')
+#    output = cms.string('output_SDV_HIP_2016-05-16_00.root')
+#    output = cms.string('output_SDV_HIP_2016-05-16_01.root')
+    output = cms.string('output_SDV_HIP_2016-05-16_02.root')
 )
 
 process.p = cms.Path(process.HIPAnalysis)
