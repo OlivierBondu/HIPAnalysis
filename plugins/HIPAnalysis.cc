@@ -37,6 +37,7 @@
 #include "DataFormats/DetId/interface/DetId.h"
 #include "DataFormats/SiStripDetId/interface/StripSubdetector.h"
 #include "DataFormats/SiStripDetId/interface/SiStripDetId.h"
+#include "CalibTracker/SiStripCommon/interface/TkDetMap.h"
 
 // ROOT includes
 #include "TTree.h"
@@ -50,9 +51,8 @@
 #include <algorithm>
 
 #define EVENTBRANCH(NAME, ...) __VA_ARGS__& NAME = eventtree[#NAME].write<__VA_ARGS__>()
+#define LAYERBRANCH(NAME, ...) __VA_ARGS__& NAME = layertree[#NAME].write<__VA_ARGS__>()
 #define CLUSTERBRANCH(NAME, ...) __VA_ARGS__& NAME = clustertree[#NAME].write<__VA_ARGS__>()
-
-#define HIPDEBUG 1
 
 //
 // class declaration
@@ -61,13 +61,16 @@
 class HIPAnalysis : public edm::EDAnalyzer {
     public:
         HIPAnalysis(const edm::ParameterSet& iConfig):
+            HIPDEBUG(iConfig.getParameter<bool>("debug")),
+            fillPerEvent(iConfig.getParameter<bool>("fillPerEvent")),
+            fillPerLayer(iConfig.getParameter<bool>("fillPerLayer")),
+            fillPerCluster(iConfig.getParameter<bool>("fillPerCluster")),
             VInputFiles(iConfig.getUntrackedParameter<std::vector<std::string>>("InputFiles")),
             m_max_events_per_file(iConfig.getUntrackedParameter<Long64_t>("maxEventsPerFile")),
-            m_output_filename(iConfig.getParameter<std::string>("output")),
-            eventtree(eventtree_),
-            clustertree(clustertree_)
+            m_output_filename(iConfig.getParameter<std::string>("output"))
         {
             m_output.reset(TFile::Open(m_output_filename.c_str(), "recreate"));
+            tkDetMap_ = edm::Service<TkDetMap>().operator->();
         }
 
         ~HIPAnalysis();
@@ -80,28 +83,65 @@ class HIPAnalysis : public edm::EDAnalyzer {
         virtual void endJob() override;
 
         // ----------member data ---------------------------
+        bool HIPDEBUG;
+        bool fillPerEvent;
+        bool fillPerLayer;
+        bool fillPerCluster;
         std::vector<std::string> VInputFiles;
         Long64_t m_max_events_per_file;
         std::string m_output_filename;
         std::unique_ptr<TFile> m_output;
-        TTree* eventtree_ = new TTree("eventtree", "eventtree");
-        TTree* clustertree_ = new TTree("clustertree", "clustertree");
+        TTree* eventtree_;
+        TTree* layertree_;
+        TTree* clustertree_;
         ROOT::TreeWrapper eventtree;
+        ROOT::TreeWrapper layertree;
         ROOT::TreeWrapper clustertree;
+        TkDetMap* tkDetMap_;
+        TkLayerMap* tkLayerMap_;
 
         unsigned int nSaturationLevels = 10;
 
+        typedef std::chrono::system_clock clock;
+        typedef std::chrono::milliseconds ms;
+        typedef std::chrono::seconds seconds;
+
+        clock::time_point m_start_time;
+
 // Event tree
+
         EVENTBRANCH(run_, unsigned int);
         EVENTBRANCH(lumi_, unsigned int);
         EVENTBRANCH(event_, unsigned int);
         EVENTBRANCH(bx_, unsigned int);
+        EVENTBRANCH(subDetector_, unsigned int);
+        EVENTBRANCH(layer_, unsigned int);
         EVENTBRANCH(nTracks_, unsigned int);
         EVENTBRANCH(nClusters_, unsigned int);
-        EVENTBRANCH(nSaturatedClusters, std::vector<unsigned int>);
+/*        EVENTBRANCH(nSaturatedClusters, std::vector<unsigned int>);
+
+        unsigned int run_;
+        unsigned int lumi_;
+        unsigned int event_;
+        unsigned int bx_;
+        unsigned int nTracks_;
+        unsigned int nClusters_;
+*/        std::vector<unsigned int> nSaturatedClusters;
+
+// Per layer per event tree
+        LAYERBRANCH(run__, unsigned int);
+        LAYERBRANCH(lumi__, unsigned int);
+        LAYERBRANCH(event__, unsigned int);
+        LAYERBRANCH(bx__, unsigned int);
+        LAYERBRANCH(subDetector__, unsigned int);
+        LAYERBRANCH(layer__, std::string);
+        LAYERBRANCH(totalChargeoverpath__, float);
+        LAYERBRANCH(nClusters__, unsigned int);
+        LAYERBRANCH(meanChargeoverpath__, float);
 
 // Cluster tree
 // Event variables
+
         CLUSTERBRANCH(run, unsigned int);
         CLUSTERBRANCH(lumi, unsigned int);
         CLUSTERBRANCH(event, unsigned int);
@@ -110,12 +150,27 @@ class HIPAnalysis : public edm::EDAnalyzer {
         CLUSTERBRANCH(nClusters, unsigned int);
 
         CLUSTERBRANCH(subDetector, unsigned int);
+        CLUSTERBRANCH(layer, std::string);
         CLUSTERBRANCH(nSaturatedStrips, unsigned int);
         CLUSTERBRANCH(nStrips, unsigned short);
         CLUSTERBRANCH(totalCharge, unsigned int);
         CLUSTERBRANCH(totalChargeoverpath, float);
-//        CLUSTERBRANCH(stripAmplitude, std::vector<unsigned char>);
+        CLUSTERBRANCH(stripAmplitude, std::vector<unsigned char>);
+/*
+        unsigned int run;
+        unsigned int lumi;
+        unsigned int event;
+        unsigned int bx;
+        unsigned int nTracks;
+        unsigned int nClusters;
+        unsigned int subDetector;
+        std::string layer;
+        unsigned int nSaturatedStrips;
+        unsigned short nStrips;
+        unsigned int totalCharge;
+        float totalChargeoverpath;
         std::vector<unsigned char> stripAmplitude;
+*/
 };
 
 HIPAnalysis::~HIPAnalysis()
@@ -146,8 +201,7 @@ HIPAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     {
         std::cout << std::endl << "-----" << std::endl;
         printf("Opening file %3llu/%3i --> %s\n", ifile + 1, (int)VInputFiles.size(), (char*)(VInputFiles[ifile].c_str())); fflush(stdout);
-//        TChain* intree = new TChain("gainCalibrationTree/tree");
-        TChain* intree = new TChain("testTree/tree");
+        TChain* intree = new TChain("gainCalibrationTree/tree");
         intree->Add(VInputFiles[ifile].c_str());
 
         TString EventPrefix("");
@@ -203,131 +257,180 @@ HIPAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         if (HIPDEBUG) {maxEntries = 2; }
         for (unsigned int ientry = 0; ientry < maxEntries; ientry++)
         {
-            if ((!HIPDEBUG) && ((ientry % 1000 == 0 && ientry < 10000) || (ientry % 10000 == 0)))
+            if ((!HIPDEBUG) && ((ientry % 1000 == 0 && ientry < 10000) || (ientry % 10000 == 0) || (ientry > 23000)))
                 std::cout << "# Processing event " << ientry << " / " << maxEntries << std::endl;
             else if (HIPDEBUG)
                 std::cout << "# Processing event " << ientry << " / " << maxEntries << std::endl;
+            if (ientry < 22000) continue;
             intree->GetEntry(ientry);
-            run_ = runnumber;
-            lumi_ = luminumber;
-            event_ = eventnumber;
-            bx_ = bxnumber;
-
-            nTotEvents++;
-            nTracks_ = (*trackp).size();
-            nTotTracks += (*trackp).size();
-            nTotClusters += (*chargeoverpath).size();
-
-        	unsigned int FirstAmplitude = 0;
-            nSaturatedClusters.clear();
-            for (unsigned int i = 0; i < nSaturationLevels; i++)
-                { nSaturatedClusters.push_back(0); }
-//            std::vector<unsigned int> saturatedCharge_;
-//            saturatedCharge_.clear();
-//            saturatedCharge.clear();
-//            std::vector<unsigned int> saturatedChargeoverpath_;
-//            saturatedChargeoverpath_.clear();
-//            saturatedChargeoverpath.clear();
-//            std::vector<unsigned int> saturatedAmplitude_;
-//            saturatedAmplitude_.clear();
-//            saturatedAmplitude.clear();
-//            for (unsigned int i = 0; i < nSaturationLevels; i++)
-//            {
-//               saturatedCharge.push_back(saturatedCharge_); 
-//                saturatedChargeoverpath.push_back(saturatedChargeoverpath_); 
-//                saturatedAmplitude.push_back(saturatedAmplitude_); 
-//            }
-            nClusters_ = 0;
-            for (unsigned int icluster = 0; icluster < (*chargeoverpath).size(); icluster++)
+            if (fillPerEvent || fillPerCluster)
             {
-                const SiStripDetId sistripdetid = SiStripDetId( (*rawid)[icluster] );
-                subDetector = sistripdetid.subDetector(); // returns: TIB:3 TID:4 TOB:5 TEC:6
-                if (subDetector < 3) { continue; }
-                nClusters_++;
-            }
-            for (unsigned int icluster = 0; icluster < (*chargeoverpath).size(); icluster++)
-            { // Loop over clusters
-                const SiStripDetId sistripdetid = SiStripDetId( (*rawid)[icluster] );
-                subDetector = sistripdetid.subDetector(); // returns: TIB:3 TID:4 TOB:5 TEC:6
-                if (subDetector < 3) { continue; }
-
-                // Needed again because filling the tree flushes the variables automagically
-                run = run_;
-                lumi = lumi_;
-                event = event_;
-                bx = bx_;
-                nTracks = nTracks_;
-                nClusters = nClusters_;
-                
-                nSaturatedStrips = 0;
-                nStrips = (*nstrips)[icluster];
-                totalCharge = (*charge)[icluster];
-                totalChargeoverpath = (*chargeoverpath)[icluster];
-                stripAmplitude.clear();
-
-                FirstAmplitude += nStrips;
-                for (unsigned int s = 0; s < nStrips; s++)
+                run_ = runnumber;
+                lumi_ = luminumber;
+                event_ = eventnumber;
+                bx_ = bxnumber;
+    
+                nTotEvents++;
+                nTracks_ = (*trackp).size();
+                nTotTracks += (*trackp).size();
+                nTotClusters += (*chargeoverpath).size();
+    
+            	unsigned int FirstAmplitude = 0;
+                nSaturatedClusters.clear();
+                for (unsigned int i = 0; i < nSaturationLevels; i++)
+                    { nSaturatedClusters.push_back(0); }
+                nClusters_ = 0;
+                for (unsigned int icluster = 0; icluster < (*chargeoverpath).size(); icluster++)
                 {
-                    unsigned char StripAmplitude     = (*amplitude)[FirstAmplitude - nStrips + s];
-/*
-                    if (StripAmplitude > 1023)
-                    { // Should be useless
-                        // Actually strike that, it CAN'T be, the amplitude is stored as an unsigned char....
-                        nSaturatedStrips++;
-//                        saturatedCharge_.push_back((*charge)[FirstAmplitude - (*nstrips)[icluster] + s]);
-//                        saturatedChargeoverpath_.push_back((*chargeoverpath)[FirstAmplitude - (*nstrips)[icluster] + s]);
-//                        saturatedAmplitude_.push_back((*amplitude)[FirstAmplitude - (*nstrips)[icluster] + s]);
-                    }
-                    else */
-                    if (StripAmplitude > 253)
+                    const SiStripDetId sistripdetid = SiStripDetId( (*rawid)[icluster] );
+                    subDetector = sistripdetid.subDetector(); // returns: TIB:3 TID:4 TOB:5 TEC:6
+                    if (subDetector < 3) { continue; }
+                    nClusters_++;
+                }
+                for (unsigned int icluster = 0; icluster < (*chargeoverpath).size(); icluster++)
+                { // Loop over clusters
+                    const SiStripDetId sistripdetid = SiStripDetId( (*rawid)[icluster] );
+                    subDetector = sistripdetid.subDetector(); // returns: TIB:3 TID:4 TOB:5 TEC:6
+                    if (subDetector < 3) { continue; }
+                    int layerid =  tkLayerMap_->layerSearch((*rawid)[icluster]);
+                    layer = tkDetMap_->getLayerName(layerid);
+    
+                    // Needed again because filling the tree flushes the variables automagically
+                    run = run_;
+                    lumi = lumi_;
+                    event = event_;
+                    bx = bx_;
+                    nTracks = nTracks_;
+                    nClusters = nClusters_;
+                    
+                    nSaturatedStrips = 0;
+                    nStrips = (*nstrips)[icluster];
+                    totalCharge = (*charge)[icluster];
+                    totalChargeoverpath = (*chargeoverpath)[icluster];
+                    stripAmplitude.clear();
+    
+                    FirstAmplitude += nStrips;
+                    for (unsigned int s = 0; s < nStrips; s++)
                     {
-                        nSaturatedStrips++;
-//                        saturatedCharge_.push_back((*charge)[FirstAmplitude - (*nstrips)[icluster] + s]);
-//                        saturatedChargeoverpath_.push_back((*chargeoverpath)[FirstAmplitude - (*nstrips)[icluster] + s]);
-//                        saturatedAmplitude_.push_back((*amplitude)[FirstAmplitude - (*nstrips)[icluster] + s]);
+                        unsigned char StripAmplitude     = (*amplitude)[FirstAmplitude - nStrips + s];
+    /*
+                        if (StripAmplitude > 1023)
+                        { // Should be useless
+                            // Actually strike that, it CAN'T be, the amplitude is stored as an unsigned char....
+                            nSaturatedStrips++;
+    //                        saturatedCharge_.push_back((*charge)[FirstAmplitude - (*nstrips)[icluster] + s]);
+    //                        saturatedChargeoverpath_.push_back((*chargeoverpath)[FirstAmplitude - (*nstrips)[icluster] + s]);
+    //                        saturatedAmplitude_.push_back((*amplitude)[FirstAmplitude - (*nstrips)[icluster] + s]);
+                        }
+                        else */
+                        if (StripAmplitude > 253)
+                        {
+                            nSaturatedStrips++;
+    //                        saturatedCharge_.push_back((*charge)[FirstAmplitude - (*nstrips)[icluster] + s]);
+    //                        saturatedChargeoverpath_.push_back((*chargeoverpath)[FirstAmplitude - (*nstrips)[icluster] + s]);
+    //                        saturatedAmplitude_.push_back((*amplitude)[FirstAmplitude - (*nstrips)[icluster] + s]);
+                        }
+                        if (fillPerCluster && HIPDEBUG) { std::cout 
+                            << "cluster # " << icluster
+                            << "\tcharge= " << (*charge)[icluster]
+                            << "\tpath= " << (*path)[icluster]
+                            << "\tchargeoverpath= " << (*chargeoverpath)[icluster]
+                            << "\tgainused= " << (*gainused)[icluster]
+                            << "\tstrip # " << s
+                            << "\tamplitude= " << (int)StripAmplitude
+                            << std::endl; }
+                        stripAmplitude.push_back(StripAmplitude);
+                    } // end of loop over strips
+    
+                    for (unsigned int i = 0; i < nSaturationLevels; i++)
+                    {
+                        if (nSaturatedStrips >= i)
+                        {
+                            nSaturatedClusters[i]++;
+                            if (fillPerCluster && HIPDEBUG) { std::cout
+                                << "saturationLevels= " << i
+                                << "\tnSaturatedStrips= " << nSaturatedStrips
+                                << "\tnSaturatedClusters[" << i << "]= " << nSaturatedClusters[i]
+                                << std::endl; }
+    //                        saturatedCharge[i] = saturatedCharge_;
+    //                        saturatedChargeoverpath[i] = saturatedChargeoverpath_;
+    //                        saturatedAmplitude[i] = saturatedAmplitude_;
+                        }
                     }
-                    if (HIPDEBUG) { std::cout 
-                        << "cluster # " << icluster
-                        << "\tcharge= " << (*charge)[icluster]
-                        << "\tpath= " << (*path)[icluster]
-                        << "\tchargeoverpath= " << (*chargeoverpath)[icluster]
-                        << "\tgainused= " << (*gainused)[icluster]
-                        << "\tstrip # " << s
-                        << "\tamplitude= " << (int)StripAmplitude
-                        << std::endl; }
-                    stripAmplitude.push_back(StripAmplitude);
-                } // end of loop over strips
-
+                    if (fillPerCluster) clustertree.fill();
+                }// End of loop over clusters
                 for (unsigned int i = 0; i < nSaturationLevels; i++)
                 {
-                    if (nSaturatedStrips >= i)
-                    {
-                        nSaturatedClusters[i]++;
-                        if (HIPDEBUG) { std::cout
-                            << "saturationLevels= " << i
-                            << "\tnSaturatedStrips= " << nSaturatedStrips
-                            << "\tnSaturatedClusters[" << i << "]= " << nSaturatedClusters[i]
-                            << std::endl; }
-//                        saturatedCharge[i] = saturatedCharge_;
-//                        saturatedChargeoverpath[i] = saturatedChargeoverpath_;
-//                        saturatedAmplitude[i] = saturatedAmplitude_;
-                    }
+                    if (nSaturatedClusters[i] > 0)
+                        nEvents[i]++;
                 }
-                clustertree.fill();
-            }// End of loop over clusters
-            for (unsigned int i = 0; i < nSaturationLevels; i++)
-            {
-                if (nSaturatedClusters[i] > 0)
-                    nEvents[i]++;
-            }
+                if (fillPerEvent) eventtree.fill();
+            } // end of if fillPerEvent || fillPerCluster
 
-            eventtree.fill();
+            // Loop over clusters, but the fill is per layer
+            if (fillPerLayer)
+            {
+                std::unordered_set<std::string> layers_set;
+                std::unordered_set<std::string>::const_iterator tmp_it;
+                std::map<std::string, float> totalChargeoverpath_inLayer;
+                std::map<std::string, unsigned int> nclusters_inLayer;
+                if (ientry > 23000) std::cout << "looping over clusters" << std::endl;
+                for (unsigned int icluster = 0; icluster < (*chargeoverpath).size(); icluster++)
+                { // Loop over clusters
+                    const SiStripDetId sistripdetid = SiStripDetId( (*rawid)[icluster] );
+                    subDetector__ = sistripdetid.subDetector(); // returns: TIB:3 TID:4 TOB:5 TEC:6
+                    if (subDetector__ < 3) { continue; }
+                    int layerid =  tkLayerMap_->layerSearch((*rawid)[icluster]);
+                    layer__ = tkDetMap_->getLayerName(layerid);
+//                    std::cout << "layer= " << layer__ << std::endl;
+                    tmp_it = layers_set.find(layer__);
+                    if (tmp_it == layers_set.end())
+                    {
+                        layers_set.insert(layer__);
+                        totalChargeoverpath_inLayer[layer__] = (*chargeoverpath)[icluster];
+                        nclusters_inLayer[layer__] = 1;
+                    } else {
+                        totalChargeoverpath_inLayer[layer__] += (*chargeoverpath)[icluster];
+                        nclusters_inLayer[layer__] += 1;
+                    }
+                } // end of loop over clusters
+                if (ientry > 23000) std::cout << "end of looping over clusters" << std::endl;
+                if (ientry > 23000) std::cout << "looping over layers" << std::endl;
+                for (auto it = layers_set.begin(); it != layers_set.end(); ++it)
+                {
+                    run__ = runnumber;
+                    lumi__ = luminumber;
+                    event__ = eventnumber;
+                    bx__ = bxnumber;
+                    layer__ = *it;
+                    totalChargeoverpath__ = totalChargeoverpath_inLayer[*it];
+                    nClusters__ = nclusters_inLayer[*it];
+                    meanChargeoverpath__ = totalChargeoverpath_inLayer[*it] / nclusters_inLayer[*it];
+                    if (fillPerLayer && HIPDEBUG)
+                    {
+                        std::cout
+                            << "layer= " << *it
+                            << "\ttotalChargeoverpath= " << totalChargeoverpath__
+                            << "\tnclusters= " << nClusters__
+                            << "\tmean= " << meanChargeoverpath__
+                            << std::endl;
+                    }
+                    layertree.fill();
+                } // end of loop over layers
+                if (ientry > 23000) std::cout << "end of looping over layers" << std::endl;
+            } // end of if fillPerLayer
+                if (ientry > 23000) std::cout << "end of fillPerLayer" << std::endl;
+
         }printf("\n");// End of loop over events
+                std::cout << "end of loop over events" << std::endl;
 
     std::cout << "nEvents / nTotEvents= " << nEvents[0] << " / " << nTotEvents << "\tnTracks / nTotTracks= " << nTracks << " / " << nTotTracks << "\tnSaturatedClusters / nTotClusters= " << nSaturatedClusters[1] << " / " << nTotClusters << std::endl;   
 
 
     } // End of loop over files
+    tkDetMap_ = 0;
+    tkLayerMap_ = 0;
+        std::cout << "end of loop over files" << std::endl;
 
 
 }
@@ -337,15 +440,28 @@ HIPAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 void 
 HIPAnalysis::beginJob()
 {
+     m_start_time = clock::now();
+
+    std::cout << "fillPerEvent= " << fillPerEvent << std::endl;
+    std::cout << "fillPerLayer= " << fillPerLayer << std::endl;
+    std::cout << "fillPerCluster= " << fillPerCluster << std::endl;
+    eventtree_ = new TTree("eventtree", "eventtree");
+    layertree_ = new TTree("layertree", "layertree");
+    clustertree_ = new TTree("clustertree", "clustertree");
+    eventtree.init(eventtree_);
+    layertree.init(layertree_);
+    clustertree.init(clustertree_);
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
 void 
 HIPAnalysis::endJob() 
 {
-    m_output->cd();
-    eventtree_->Write();
-    clustertree_->Write();
+    std::cout << "ENDING JOB" << std::endl;
+    auto end_time = clock::now();
+    std::cout << std::endl << "Job done in " << std::chrono::duration_cast<ms>(end_time - m_start_time).count() / 1000. << "s" << std::endl;
+
+    m_output->Write();    
 }
 
 // ------------ method called when starting to processes a run  ------------
