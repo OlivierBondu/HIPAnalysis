@@ -6,6 +6,7 @@
 <use name="Geometry/TrackerGeometryBuilder"/>
 <use name="DataFormats/DetId"/>
 <use name="DataFormats/SiStripDetId"/>
+<use name="CalibTracker/SiStripCommon"/>
 <flags EDM_PLUGIN="1"/>
  <use name="DataFormats/TrackReco"/>
  <use name="CommonTools/UtilAlgos"/>
