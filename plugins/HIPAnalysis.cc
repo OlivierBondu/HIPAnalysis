@@ -135,9 +135,9 @@ class HIPAnalysis : public edm::EDAnalyzer {
         LAYERBRANCH(bx__, unsigned int);
         LAYERBRANCH(subDetector__, unsigned int);
         LAYERBRANCH(layer__, std::string);
-        LAYERBRANCH(totalChargeoverpath__, float);
+        LAYERBRANCH(totalChargeoverpath__, double);
         LAYERBRANCH(nClusters__, unsigned int);
-        LAYERBRANCH(meanChargeoverpath__, float);
+        LAYERBRANCH(meanChargeoverpath__, double);
 
 // Cluster tree
 // Event variables
@@ -154,7 +154,7 @@ class HIPAnalysis : public edm::EDAnalyzer {
         CLUSTERBRANCH(nSaturatedStrips, unsigned int);
         CLUSTERBRANCH(nStrips, unsigned short);
         CLUSTERBRANCH(totalCharge, unsigned int);
-        CLUSTERBRANCH(totalChargeoverpath, float);
+        CLUSTERBRANCH(totalChargeoverpath, double);
         CLUSTERBRANCH(stripAmplitude, std::vector<unsigned char>);
 /*
         unsigned int run;
@@ -201,7 +201,8 @@ HIPAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     {
         std::cout << std::endl << "-----" << std::endl;
         printf("Opening file %3llu/%3i --> %s\n", ifile + 1, (int)VInputFiles.size(), (char*)(VInputFiles[ifile].c_str())); fflush(stdout);
-        TChain* intree = new TChain("gainCalibrationTree/tree");
+//        TChain* intree = new TChain("gainCalibrationTree/tree");
+        TChain* intree = new TChain("gainCalibrationTreeStdBunch/tree");
         intree->Add(VInputFiles[ifile].c_str());
 
         TString EventPrefix("");
@@ -237,8 +238,8 @@ HIPAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         std::vector<bool>*           overlapping    = 0;    intree->SetBranchAddress(CalibPrefix + "overlapping"    + CalibSuffix, &overlapping   , NULL);
         std::vector<bool>*           farfromedge    = 0;    intree->SetBranchAddress(CalibPrefix + "farfromedge"    + CalibSuffix, &farfromedge   , NULL);
         std::vector<unsigned int>*   charge         = 0;    intree->SetBranchAddress(CalibPrefix + "charge"         + CalibSuffix, &charge        , NULL);
-        std::vector<float>*          path           = 0;    intree->SetBranchAddress(CalibPrefix + "path"           + CalibSuffix, &path          , NULL);
-        std::vector<float>*          chargeoverpath = 0;    intree->SetBranchAddress(CalibPrefix + "chargeoverpath" + CalibSuffix, &chargeoverpath, NULL);
+        std::vector<double>*         path           = 0;    intree->SetBranchAddress(CalibPrefix + "path"           + CalibSuffix, &path          , NULL);
+        std::vector<double>*         chargeoverpath = 0;    intree->SetBranchAddress(CalibPrefix + "chargeoverpath" + CalibSuffix, &chargeoverpath, NULL);
         std::vector<unsigned char>*  amplitude      = 0;    intree->SetBranchAddress(CalibPrefix + "amplitude"      + CalibSuffix, &amplitude     , NULL);
         std::vector<double>*         gainused       = 0;    intree->SetBranchAddress(CalibPrefix + "gainused"       + CalibSuffix, &gainused      , NULL);
 
@@ -257,11 +258,10 @@ HIPAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         if (HIPDEBUG) {maxEntries = 2; }
         for (unsigned int ientry = 0; ientry < maxEntries; ientry++)
         {
-            if ((!HIPDEBUG) && ((ientry % 1000 == 0 && ientry < 10000) || (ientry % 10000 == 0) || (ientry > 23000)))
+            if ((!HIPDEBUG) && ((ientry % 1000 == 0 && ientry < 10000) || (ientry % 10000 == 0)))
                 std::cout << "# Processing event " << ientry << " / " << maxEntries << std::endl;
             else if (HIPDEBUG)
                 std::cout << "# Processing event " << ientry << " / " << maxEntries << std::endl;
-            if (ientry < 22000) continue;
             intree->GetEntry(ientry);
             if (fillPerEvent || fillPerCluster)
             {
@@ -374,7 +374,9 @@ HIPAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
                 std::unordered_set<std::string>::const_iterator tmp_it;
                 std::map<std::string, float> totalChargeoverpath_inLayer;
                 std::map<std::string, unsigned int> nclusters_inLayer;
-                if (ientry > 23000) std::cout << "looping over clusters" << std::endl;
+                layers_set.clear();
+                totalChargeoverpath_inLayer.clear();
+                nclusters_inLayer.clear();
                 for (unsigned int icluster = 0; icluster < (*chargeoverpath).size(); icluster++)
                 { // Loop over clusters
                     const SiStripDetId sistripdetid = SiStripDetId( (*rawid)[icluster] );
@@ -393,9 +395,11 @@ HIPAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
                         totalChargeoverpath_inLayer[layer__] += (*chargeoverpath)[icluster];
                         nclusters_inLayer[layer__] += 1;
                     }
+                    if (HIPDEBUG)
+                    {
+                        std::cout << "cluster #" << icluster << "\tchargeoverpath= " << (*chargeoverpath)[icluster] << std::endl;
+                    }
                 } // end of loop over clusters
-                if (ientry > 23000) std::cout << "end of looping over clusters" << std::endl;
-                if (ientry > 23000) std::cout << "looping over layers" << std::endl;
                 for (auto it = layers_set.begin(); it != layers_set.end(); ++it)
                 {
                     run__ = runnumber;
@@ -417,20 +421,18 @@ HIPAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
                     }
                     layertree.fill();
                 } // end of loop over layers
-                if (ientry > 23000) std::cout << "end of looping over layers" << std::endl;
             } // end of if fillPerLayer
-                if (ientry > 23000) std::cout << "end of fillPerLayer" << std::endl;
 
         }printf("\n");// End of loop over events
-                std::cout << "end of loop over events" << std::endl;
+        if (HIPDEBUG) std::cout << "end of loop over events" << std::endl;
 
-    std::cout << "nEvents / nTotEvents= " << nEvents[0] << " / " << nTotEvents << "\tnTracks / nTotTracks= " << nTracks << " / " << nTotTracks << "\tnSaturatedClusters / nTotClusters= " << nSaturatedClusters[1] << " / " << nTotClusters << std::endl;   
+//    std::cout << "nEvents / nTotEvents= " << nEvents[0] << " / " << nTotEvents << "\tnTracks / nTotTracks= " << nTracks << " / " << nTotTracks << "\tnSaturatedClusters / nTotClusters= " << nSaturatedClusters[1] << " / " << nTotClusters << std::endl;   
 
 
     } // End of loop over files
     tkDetMap_ = 0;
     tkLayerMap_ = 0;
-        std::cout << "end of loop over files" << std::endl;
+    if (HIPDEBUG) std::cout << "end of loop over files" << std::endl;
 
 
 }
@@ -457,7 +459,6 @@ HIPAnalysis::beginJob()
 void 
 HIPAnalysis::endJob() 
 {
-    std::cout << "ENDING JOB" << std::endl;
     auto end_time = clock::now();
     std::cout << std::endl << "Job done in " << std::chrono::duration_cast<ms>(end_time - m_start_time).count() / 1000. << "s" << std::endl;
 
