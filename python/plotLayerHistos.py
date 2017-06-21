@@ -1,15 +1,16 @@
 #!/bin/env python
 # Python imports
 import os
+import json
 import numpy as np
 import collections
 # File location
 #histdir = "/home/fynu/obondu/TRK/CMSSW_7_4_15/src/CalibTracker/HIPAnalysis/python/test_condor/condor/output/"
 #histfile = "histos.root"
-histdir = "/home/fynu/obondu/TRK/CMSSW_7_4_15/src/CalibTracker/HIPAnalysis/python/"
-histfile = "histos_274968_and_GR15_v02.root"
+histdir = "/home/fynu/obondu/TRK/CMSSW_7_4_15/src/CalibTracker/HIPAnalysis/"
+histfile = "histos_APVsettings_StdBunch_v3.root"
 
-plotdir = "160622_perLayer"
+plotdir = "160902_perLayer"
 # ROOT setup
 import ROOT
 from ROOT import TFile, TCanvas, TLatex, TLegend
@@ -32,22 +33,30 @@ blue = np.array([0.5293, 0.8684, 0.8385, 0.7914, 0.6425, 0.4662, 0.3499, 0.1968,
 ROOT.TColor.CreateGradientColorTable(9, stops, red, green, blue, 255, 1)
 
 layers = []
-layers += ["TIDP_D%i" % i for i in xrange(1,4)]
-layers += ["TIDM_D%i" % i for i in xrange(1,4)]
-layers += ["TECP_W%i" % i for i in xrange(1,10)]
-layers += ["TECM_W%i" % i for i in xrange(1,10)]
-layers += ["TOB_L%i" % i for i in xrange(1,7)]
-layers += ["TIB_L%i" % i for i in xrange(1,5)]
+#layers += ["TIDP_D%i" % i for i in xrange(1,4)]
+#layers += ["TIDM_D%i" % i for i in xrange(1,4)]
+#layers += ["TECP_W%i" % i for i in xrange(1,10)]
+#layers += ["TECM_W%i" % i for i in xrange(1,10)]
+#layers += ["TOB_L%i" % i for i in xrange(1,7)]
+#layers += ["TIB_L%i" % i for i in xrange(1,5)]
 layers = ["TOB_L%i" % i for i in xrange(1,2)] # to do only TOB_L1
+#lumisections = [x * 100 for x in xrange(0,20)]
+#lumisections = [x * 100 for x in xrange(0,5)]
+lumisections = [
+        [1,100],
+    ]
+
+print 'layers= ', layers
+print 'lumisections= ', lumisections
 
 runs = collections.OrderedDict()
-runs[257400] = {
-    "color": ROOT.kRed+1,
-    "marker": 20,
-    "intL": "62.19 /pb",
-    "initialLumi": "2.11e33 cm^{-2}/s",
-    "date": "15/09/24",
-    }
+#runs[257400] = {
+#    "color": ROOT.kRed+1,
+#    "marker": 20,
+#    "intL": "62.19 /pb",
+#    "initialLumi": "2.11e33 cm^{-2}/s",
+#    "date": "15/09/24",
+#    }
 #runs[257487] = {
 #    "color": ROOT.kMagenta+1,
 #    "marker": 21,
@@ -69,20 +78,20 @@ runs[257400] = {
 #    "initialLumi": "2.91e33 cm^{-2}/s",
 #    "date": "15/09/27",
 #    }
-runs[257822] = {
-    "color": ROOT.kMagenta+1,
-    "marker": 21,
-    "intL": "77.92 /pb",
-    "initialLumi": "2.64e33 cm^{-2}/s",
-    "date": "15/09/29",
-    }
-runs[258158] = {
-    "color": ROOT.kBlue+1,
-    "marker": 22,
-    "intL": "108.77 /pb",
-    "initialLumi": "3.02e33 cm^{-2}/s",
-    "date": "15/10/02",
-    }
+#runs[257822] = {
+#    "color": ROOT.kMagenta+1,
+#    "marker": 21,
+#    "intL": "77.92 /pb",
+#    "initialLumi": "2.64e33 cm^{-2}/s",
+#    "date": "15/09/29",
+#    }
+#runs[258158] = {
+#    "color": ROOT.kBlue+1,
+#    "marker": 22,
+#    "intL": "108.77 /pb",
+#    "initialLumi": "3.02e33 cm^{-2}/s",
+#    "date": "15/10/02",
+#    }
 #runs[258177] = {
 #    "color": ROOT.kOrange+1,
 #    "marker": 26,
@@ -90,21 +99,62 @@ runs[258158] = {
 #    "initialLumi": "2.78e33 cm^{-2}/s",
 #    "date": "15/10/03",
 #    }
-runs[260627] = {
-    "color": ROOT.kCyan+1,
-    "marker": 23,
-    "intL": "186.11 /pb",
-    "initialLumi": "5.22e33 cm^{-2}/s",
-    "date": "15/11/02",
-    }
+#runs[260627] = {
+#    "color": ROOT.kBlue,
+#    "marker": 23,
+#    "intL": "186.11 /pb",
+#    "initialLumi": "5.22e33 cm^{-2}/s",
+#    "date": "15/11/02",
+#    }
 
-runs[274968] = {
+#runs[274968] = {
+#    "color": ROOT.kGreen+1,
+#    "marker": 24,
+#    "intL": "192.10 /pb",
+#    "initialLumi": "7.88e33 cm^{-2}/s",
+#    "date": "15/06/12",
+#    }
+
+runs[278769] = {
     "color": ROOT.kGreen+1,
     "marker": 24,
     "intL": "192.10 /pb",
     "initialLumi": "7.88e33 cm^{-2}/s",
     "date": "15/06/12",
+    "comments": "LS 1-100 ; new APV settings",
     }
+
+runs[278770] = {
+    "color": ROOT.kBlue+1,
+    "marker": 25,
+    "intL": "192.10 /pb",
+    "initialLumi": "7.88e33 cm^{-2}/s",
+    "date": "15/06/12",
+    "comments": "LS 1-100 ; old APV settings",
+    }
+
+allInstLumi = {}
+with open('live_lumi.json') as f:
+    allInstLumi = json.load(f)
+
+instLumi = {}
+for k in runs:
+    instLumi[k] = {l: i / 1000. for r, l, i in allInstLumi[u'data'] if r == k}
+
+if 274968 in runs and len(instLumi[274968]) == 0:
+    instLumi[274968] = {}
+    with open("274968.csv") as f:
+        for line in f:
+            if '#' in line:
+                continue
+#            print line.split(',')
+            r, l, t, b, e, delivered, recorded, pu, source = line.split(',')
+            instLumi[274968][int(l.split(':')[0])] = float(recorded) / 1000.
+    
+#print allInstLumi
+#print instLumi[274968][100], "%.1f" % instLumi[274968][100]
+
+#raise AssertionError
 
 f = TFile(os.path.join(histdir, histfile))
 def GetKeyNames( self, dir = "" ):
@@ -118,37 +168,58 @@ keyList = f.GetKeyNames('')
 #    print f.Get(k).ClassName(), k
 
 plots = collections.OrderedDict()
-plots['meanChargeoverpath_vs_bx_zoomed'] = {
-        'histname': 'h_meanChargeoverpath_vs_bx',
-        'class': 'TH2',
-        'y-max': 500,
-        'y-min': 300,
-        'x-min': 200,
-        'x-max': 400,
-    }
-plots['meanChargeoverpath_vs_bx'] = {
-        'histname': 'h_meanChargeoverpath_vs_bx',
-        'class': 'TH2',
-        'rebin': 10,
-        'y-max': 500,
-        'y-min': 300,
-        'x-min': 0,
-        'x-max': 3500,
-    }
-plots['meanChargeoverpath'] = {
-        'histname': 'h_meanChargeoverpath',
+#plots['meanChargeoverpath_vs_bx_zoomed'] = {
+#        'histname': 'h_chargeoverpath_vs_bx',
+#        'class': 'TH2',
+#        'y-max': 800,
+#        'y-min': 200,
+#        'x-min': 50,
+#        'x-max': 170,
+#        'x-title': 'bx number',
+#        'y-title': 'charge / cm',
+#        'rebin': 1,
+#    }
+#plots['chargeoverpath_vs_bx'] = {
+#        'histname': 'h_chargeoverpath_vs_bx',
+#        'class': 'TH2',
+#        'rebin': 10,
+#        'y-max': 800,
+#        'y-min': 200,
+#        'x-min': 0,
+#        'x-max': 3600,
+#        'x-title': 'bx number',
+#        'y-title': 'charge / cm',
+#    }
+plots['chargeoverpath'] = {
+        'histname': 'h_chargeoverpath',
         'class': 'TH1',
         'norm': '1',
-        'x-min': 200,
-        'x-max': 600,
-#        'y-max': 0.020,
+        'x-min': 0,
+        'x-max': 1000,
         'xrebin': 10,
-        'y-max': 0.20,
+        'y-max': 0.06,
+        'y-log': False,
+#        'y-max': 9.0,
+#        'y-log': True,
+        'legendColumns': 1,
+        'x-title': 'charge / cm',
     }
+bx_list = [60] #, 116, 199, 255, 338, 394] #, 477, 533, 616, 672, 803, 589, 942]
+bxs = []
+#bxs = ['0-3600']
+bxs += ["%i-%i" % (x   , x+16) for x in bx_list]
+bxs += ["%i-%i" % (x+16, x+32) for x in bx_list]
+bxs += ["%i-%i" % (x+32, x+48) for x in bx_list]
+#bxs += ["%i-%i" % (x   , x+24) for x in bx_list]
+#bxs += ["%i-%i" % (x+24, x+48) for x in bx_list]
 
 for ilayer, layer in enumerate(layers):
     for iplot, plot in enumerate(plots):
-        print "\nPLOT %i / %i" % (iplot + (ilayer * len(plots)+ 1), len(layers) * len(plots))
+        print "\nPLOT %i / %i" % (
+                iplot
+                + ilayer * len(plots)
+                + 1
+            , len(layers) * len(plots))
         # Do TH2 histos
         plotname = 'h_%s_%s' % (plot, layer)
         if 'TH2' in plots[plot]['class']:
@@ -159,38 +230,63 @@ for ilayer, layer in enumerate(layers):
             legend.SetLineColor(ROOT.kWhite)
             legend.SetShadowColor(ROOT.kWhite)
             for irun, run in enumerate(runs):
-                for k in keyList:
-                    if plots[plot]['histname'] not in k:
-                        continue
-                    if layer not in k or str(run) not in k:
-                        continue
-                    h = f.Get(k)
-                    if 'TH2' not in h.ClassName():
-                        continue
-                    drawoptions = ''
-                    print '\t', layer, run, h.ClassName(), k
-                    if 'rebin' in plots[plot]:
-                        h.RebinX(plots[plot]['rebin'])
-                        print "rebinning"
-                    p = h.ProfileX()
-                    p.SetLineColor(runs[run]['color'])
-                    p.SetMarkerColor(runs[run]['color'])
-                    p.SetMarkerStyle(runs[run]['marker'])
-                    p.GetYaxis().SetTitle(h.GetYaxis().GetTitle())
-                    if 'y-min' in plots[plot]:
-                        p.SetMinimum(plots[plot]['y-min'])
-                    if 'y-max' in plots[plot]:
-                        p.SetMaximum(plots[plot]['y-max'])
-                    if 'x-max' in plots[plot]:
-                        p.GetXaxis().SetRangeUser(plots[plot]['x-min'], plots[plot]['x-max'])
-                    c2.SetGrid()
-                    if irun > 0:
-                        drawoptions ='same'
-                        legend.SetHeader(layer)
-                    p.Draw(drawoptions)
-                    legend.AddEntry(p.GetName(), '%i %s' % (run, runs[run]['initialLumi']), 'lp')
-                    ROOT.gPad.Modified()
-                    ROOT.gPad.Update()
+                for ilumisection, lumisection in enumerate(lumisections):
+                    for ibx, bx in enumerate(bxs):
+#                    for ibx, bx in enumerate(bx_list):
+                        for k in keyList:
+                            if plots[plot]['histname'] not in k:
+                                continue
+                            if layer not in k or str(run) not in k:
+                                continue
+#                        if 'LS_%i-%i_%s' % (lumisection[0], lumisection[1], layer) not in k:
+                            if '_%i-%i_%s' % (lumisection[0], lumisection[1], layer) not in k:
+                                continue
+                            if bx not in k:
+                                continue
+                            h = f.Get(k)
+                            if h.GetEntries() == 0:
+#                            print 'empty histo, skipping'
+                                continue
+                            if 'TH2' not in h.ClassName():
+                                continue
+                            drawoptions = ''
+                            print '\t', layer, run, h.ClassName(), k
+                            if 'rebin' in plots[plot]:
+                                h.RebinX(plots[plot]['rebin'])
+    #                            print "rebinning"
+                            p = h.ProfileX()
+                            p.SetLineColor(runs[run]['color'] + ilumisection + ibx)
+                            p.SetMarkerColor(runs[run]['color'] + ilumisection + ibx)
+                            p.SetMarkerStyle(runs[run]['marker'] + ilumisection + ibx)
+                            p.GetYaxis().SetTitle(h.GetYaxis().GetTitle())
+                            if 'x-title' in plots[plot]:
+                                p.GetXaxis().SetTitle(plots[plot]['x-title'])
+                            if 'y-title' in plots[plot]:
+                                p.GetYaxis().SetTitle(plots[plot]['y-title'])
+                            if 'y-min' in plots[plot]:
+                                p.SetMinimum(plots[plot]['y-min'])
+                            if 'y-max' in plots[plot]:
+                                p.SetMaximum(plots[plot]['y-max'])
+                            if 'x-max' in plots[plot]:
+                                p.GetXaxis().SetRangeUser(plots[plot]['x-min'], plots[plot]['x-max'])
+                            c2.SetGrid()
+                            if plots[plot].get('y-log', False):
+                                c2.SetLogy(1)
+                            else:
+                                c2.SetLogy(0)
+                            if irun > 0 or ilumisection > 0 or ibx > 0:
+                                drawoptions ='same'
+                            legend.SetHeader(layer)
+                            p.Draw(drawoptions)
+                            legend.AddEntry(p.GetName(), '%i %s bx:%s' % (run, runs[run]['comments'], bx), 'lp')
+#                        legend.AddEntry(p.GetName(), '%i %s' % (run, runs[run]['initialLumi']), 'lp')
+#                        legend.AddEntry(p.GetName(), '%i LS %i-%i (%.2f - %.2f e33 cm^{-2}/s)' % (run, lumisection[0], lumisection[1], instLumi[run][lumisection[0]], instLumi[run][lumisection[1]]), 'lp')
+                            ROOT.gPad.Modified()
+                            ROOT.gPad.Update()
+                        # end of loop over histos
+                    # end of loop over bx intervals
+                # end of loop of lumisections
+            # end of loop over runs
             latexLabel = TLatex()
             latexLabel.SetTextSize(0.75 * c1.GetTopMargin())
             latexLabel.SetNDC()
@@ -210,41 +306,68 @@ for ilayer, layer in enumerate(layers):
             legend.SetLineColor(ROOT.kWhite)
             legend.SetShadowColor(ROOT.kWhite)
             for irun, run in enumerate(runs):
-                for k in keyList:
-                    if plot not in k:
-                        continue
-                    if layer not in k or str(run) not in k:
-                        continue
-                    h = f.Get(k)
-                    if 'TH1' not in h.ClassName():
-                        continue
-                    drawoptions = ''
-                    print '\t', layer, run, h.ClassName(), k
-#                    h.RebinX(10)
-                    h.SetLineColor(runs[run]['color'])
-                    h.SetLineWidth(2)
-                    norm = plots[plot].get('norm', None)
-                    if norm == '1':
-                        h.Scale(1. / h.GetEntries())
-                        h.GetYaxis().SetTitle('Norm. to unity')
-                    else:
-                        h.GetYaxis().SetTitle(h.GetYaxis().GetTitle())
-                    c1.SetGrid()
-                    if irun > 0:
-                        drawoptions ='same'
-                        legend.SetHeader(layer)
-                    if plots[plot].get('xrebin', None):
-                        h.RebinX(plots[plot]['xrebin'])
-                    if 'y-min' in plots[plot]:
-                        h.SetMinimum(plots[plot]['y-min'])
-                    if 'y-max' in plots[plot]:
-                        h.SetMaximum(plots[plot]['y-max'])
-                    if 'x-max' in plots[plot]:
-                        h.GetXaxis().SetRangeUser(plots[plot]['x-min'], plots[plot]['x-max'])
-                    h.Draw(drawoptions)
-                    legend.AddEntry(h.GetName(), '%i %s' % (run, runs[run]['initialLumi']), 'l')
-                    ROOT.gPad.Modified()
-                    ROOT.gPad.Update()
+                for ilumisection, lumisection in enumerate(lumisections):
+                    for ibx, bx in enumerate(bxs):
+#                    for ibx, bx in enumerate(bx_list):
+                        for k in keyList:
+                            if plot not in k:
+                                continue
+                            if layer not in k or str(run) not in k:
+                                continue
+#                        if 'LS_%i-%i_%s' % (lumisection[0], lumisection[1], layer) not in k:
+                            if '_%i-%i_%s' % (lumisection[0], lumisection[1], layer) not in k:
+                                continue
+                            if bx not in k:
+                                continue
+                            h = f.Get(k)
+                            if h.GetEntries() == 0:
+#                            print 'empty histo, skipping'
+                                continue
+                            if 'TH1' not in h.ClassName():
+                                continue
+                            drawoptions = ''
+                            print '\t', layer, run, bx, h.ClassName(), k
+    #                    h.RebinX(10)
+                            h.SetLineColor(runs[run]['color'] + ilumisection + ibx)
+                            h.SetLineWidth(2)
+                            norm = plots[plot].get('norm', None)
+                            if 'x-title' in plots[plot]:
+                                h.GetXaxis().SetTitle(plots[plot]['x-title'])
+                            if 'y-title' in plots[plot]:
+                                h.GetYaxis().SetTitle(plots[plot]['y-title'])
+                            if norm == '1':
+                                h.Scale(1. / h.GetEntries())
+                                h.GetYaxis().SetTitle('Norm. to unity')
+                            else:
+                                h.GetYaxis().SetTitle(h.GetYaxis().GetTitle())
+                            c1.SetGrid()
+                            if plots[plot].get('y-log', False):
+                                c1.SetLogy(1)
+                            else:
+                                c1.SetLogy(0)
+                            if irun > 0 or ilumisection > 0 or ibx > 0:
+                                drawoptions ='same'
+                                legend.SetHeader(layer)
+                            if plots[plot].get('xrebin', None):
+                                h.RebinX(plots[plot]['xrebin'])
+                            if 'y-min' in plots[plot]:
+                                h.SetMinimum(plots[plot]['y-min'])
+                            if 'y-max' in plots[plot]:
+                                h.SetMaximum(plots[plot]['y-max'])
+                            if 'x-max' in plots[plot]:
+                                h.GetXaxis().SetRangeUser(plots[plot]['x-min'], plots[plot]['x-max'])
+                            if 'legendColumns' in plots[plot]:
+                                legend.SetNColumns(plots[plot]['legendColumns'])
+                            h.Draw(drawoptions)
+                            legend.AddEntry(h.GetName(), '%i %s bx:%s' % (run, runs[run]['comments'], bx), 'l')
+                        #legend.AddEntry(h.GetName(), '%i %s' % (run, runs[run]['initialLumi']), 'l')
+#                        legend.AddEntry(h.GetName(), '%i LS %i-%i (%.2f - %.2f e33 cm^{-2}/s)' % (run, lumisection[0], lumisection[1], instLumi[run][lumisection[0]], instLumi[run][lumisection[1]]), 'l')
+                            ROOT.gPad.Modified()
+                            ROOT.gPad.Update()
+                        # end of loop over histos
+                    # end of loop over bx intervals
+                # end of loop of lumisections
+            # end of loop over runs
             latexLabel = TLatex()
             latexLabel.SetTextSize(0.75 * c1.GetTopMargin())
             latexLabel.SetNDC()
@@ -259,150 +382,4 @@ for ilayer, layer in enumerate(layers):
     # end of loop over plots
 # end of loop over layer 
 
-raise Exception('HA')
-
-outdir = "/storage/data/cms"
-eosdir = "store/user/obondu/CRAB_PrivateMC/crab_HIPAnalysis/"
-taskdir = "160616_162801/0000/"
-#outdir = '/home/fynu/obondu/TRK/CMSSW_7_4_15/src'
-#eosdir = 'CalibTracker/HIPAnalysis/'
-#taskdir = ''
-chain = TChain("layertree")
-print os.path.join(outdir, eosdir, taskdir) + "output_*.root"
-#chain.Add(os.path.join(outdir, eosdir, taskdir) + "output_1.root")
-chain.Add(os.path.join(outdir, eosdir, taskdir) + "output_*.root")
-print "chain.GetEntries()=", chain.GetEntries()
-
-plots = {
-"meanChargeoverpath__": {
-    "name": "meanChargeoverpath",
-    "title": "#Events:< charge / path >",
-    "binning": "(80, 100, 900)",
-    "norm": "1",
-    "ylog": False,
-    },
-#"meanChargeoverpath__:bx__": {
-#    "name": "meanChargeoverpath_vs_bx", 
-#    "title": "< charge / path >:bx",
-#    "binning": "(35, 0, 3500, 500, 0, 2000)"
-#    },
-}
-
-runs = {
-257400: {
-    "color": ROOT.kRed+1,
-    "marker": 20,
-    },
-257487: {
-    "color": ROOT.kMagenta+1,
-    "marker": 21,
-    },
-257613: {
-    "color": ROOT.kBlue+1,
-    "marker": 22,
-    },
-257645: {
-    "color": ROOT.kCyan+1,
-    "marker": 23,
-    },
-257822: {
-    "color": ROOT.kGreen+1,
-    "marker": 24,
-    },
-258158: {
-    "color": ROOT.kYellow+1,
-    "marker": 25,
-    },
-258177: {
-    "color": ROOT.kOrange+1,
-    "marker": 26,
-    },
-260627: {
-    "color": ROOT.kPink+1,
-    "marker": 27,
-    },
-}
-
-cuts = {
-#"allTracker": "1", 
-}
-for x in layers:
-    cuts[x] = 'layer__ == \"%s\"' % (x)
-h = {}
-p = {}
-
-for icut, cut in enumerate(cuts):
-    print "cut= ", cut
-    for iplot, plot in enumerate(plots):
-        print "\tplot= ", plot
-        options = ""
-        if ":" in plot:
-            options = "colznum"
-        binning = plots[plot].get('binning', '')
-        for irun, run in enumerate(runs):
-            print "\t\trun= ", run
-            totalcut = '(%s) && (run__ == %i)' % (cuts[cut], run)
-            if irun > 0 and ':' not in plot:
-                options += 'SAME'
-            hname = "h_tmp_%s_%s_%s" % (icut, iplot, irun)
-            chain.Draw(plot + ">>%s%s" % (hname, binning), totalcut, options)
-            h[hname] = ROOT.gDirectory.Get(hname)
-            h[hname].SetLineColor(runs[run]['color'])
-            h[hname].SetTitle("")
-            extrafilename = ''
-            if ':' in plot: # this is a 2D plot
-                h[hname].SetContour(1000) # for prettier contours
-            norm = plots[plot].get('norm', None)
-            if norm == '1':
-                h[hname].Scale(1. / chain.GetEntries(totalcut))
-                h[hname].GetYaxis().SetTitle('Norm. to unity')
-            else:
-                h[hname].GetYaxis().SetTitle(plots[plot]['title'].split(':')[0])
-            h[hname].GetXaxis().SetTitle(plots[plot]['title'].split(':')[1])
-            h[hname].SetDirectory(0)
-            if ':' in plot:
-                p[hname] = h[hname].ProfileX()
-                p[hname].SetDirectory(0)
-            h[hname].Draw(options)
-        if plots[plot].get('ylog', False):
-            c1.SetLogy(1)
-            extrafilename += '_log'
-        else:
-            c1.SetLogy(0)
-        c1.Print(plotdir + "/" + plots[plot]['name'] + "_" + cut + extrafilename + ".png")
-        c1.Print(plotdir + "/" + plots[plot]['name'] + "_" + cut + extrafilename + ".pdf")
-        c1.Print(plotdir + "/" + plots[plot]['name'] + "_" + cut + extrafilename + ".root")
-        c1.Clear()
-
-# now with profiles for 2D
-        print "\tprofileplot= ", plot
-        if ':' not in plot:
-            continue
-        for irun, run in enumerate(runs):
-            print "\t\trun= ", run
-            hname = "h_tmp_%s_%s_%s" % (icut, iplot, irun)
-#            print h[hname], h[hname].GetName(), h[hname].GetTitle(), h[hname].GetEntries()
-#            options = ''
-#            if irun > 0:
-#                options = 'd'
-#            p[hname] = h[hname].ProfileX() #"%s_PFX" % (hname), 1, -1, options)
-#            print p[hname], p[hname].GetName(), p[hname].GetTitle(), p[hname].GetEntries()
-            p[hname].GetYaxis().SetTitle(plots[plot]['title'].split(':')[0])
-            p[hname].GetXaxis().SetTitle(plots[plot]['title'].split(':')[1])
-            p[hname].SetMarkerColor(runs[run]['color'])
-            p[hname].SetMarkerStyle(runs[run]['marker'])
-            p[hname].SetMinimum(250)
-            p[hname].SetMaximum(450)
-            options = ''
-            if irun > 0:
-                options = 'SAME'
-#            print 'options= ', options
-            p[hname].Draw(options)
-            ROOT.gPad.Modified()
-            ROOT.gPad.Update()
-            # end of loop over runs
-        c1.Print(plotdir + "/profileX_" + plots[plot]['name'] + "_" + cut + ".png")
-        c1.Print(plotdir + "/profileX_" + plots[plot]['name'] + "_" + cut + ".pdf")
-        c1.Print(plotdir + "/profileX_" + plots[plot]['name'] + "_" + cut + ".root")
-        c1.Clear()
 
