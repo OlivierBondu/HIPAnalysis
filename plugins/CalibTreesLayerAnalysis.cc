@@ -102,8 +102,10 @@ class CalibTreesLayerAnalysis : public edm::EDAnalyzer {
         // Histograms
         std::map<std::string, TH1F*> map_h_chargeoverpath;
         std::map<std::string, TH2F*> map_h_chargeoverpath_vs_bx;
-        // h_meanChargeoverpath_vs_bx_274968_LS_100-200_TOB_L1
-        // h_meanChargeoverpath_274968_LS_100-200_TOB_L1
+        std::map<std::string, TH1F*> map_h_PU;
+        std::map<std::string, TH2F*> map_h_PU_vs_bx;
+        std::map<std::string, TH1F*> map_h_instLumi;
+        std::map<std::string, TH2F*> map_h_instLumi_vs_bx;
 };
 
 //
@@ -144,6 +146,14 @@ CalibTreesLayerAnalysis::~CalibTreesLayerAnalysis()
         delete (*it).second;
     for (auto it = map_h_chargeoverpath_vs_bx.begin() ; it != map_h_chargeoverpath_vs_bx.end() ; it++)
         delete (*it).second;
+    for (auto it = map_h_PU.begin() ; it != map_h_PU.end() ; it++)
+        delete (*it).second;
+    for (auto it = map_h_PU_vs_bx.begin() ; it != map_h_PU_vs_bx.end() ; it++)
+        delete (*it).second;
+    for (auto it = map_h_instLumi.begin() ; it != map_h_instLumi.end() ; it++)
+        delete (*it).second;
+    for (auto it = map_h_instLumi_vs_bx.begin() ; it != map_h_instLumi_vs_bx.end() ; it++)
+        delete (*it).second;
     m_output->Close();
 }
 
@@ -178,6 +188,9 @@ CalibTreesLayerAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup
         unsigned int                 luminumber     = 0;    intree->SetBranchAddress(EventPrefix + "lumi"           + EventSuffix, &luminumber    , NULL);
         unsigned int                 bxnumber       = 0;    intree->SetBranchAddress(EventPrefix + "bx"             + EventSuffix, &bxnumber      , NULL);
         std::vector<bool>*           TrigTech       = 0;    intree->SetBranchAddress(EventPrefix + "TrigTech"       + EventSuffix, &TrigTech      , NULL);
+        std::vector<bool>*           TrigPh         = 0;    intree->SetBranchAddress(EventPrefix + "TrigPh"         + EventSuffix, &TrigPh        , NULL);
+        float                        PU             = 0;    intree->SetBranchAddress(EventPrefix + "PU"             + EventSuffix, &PU            , NULL);
+        float                        instLumi       = 0;    intree->SetBranchAddress(EventPrefix + "instLumi"       + EventSuffix, &instLumi      , NULL);
 
         std::vector<double>*         trackchi2ndof  = 0;    intree->SetBranchAddress(TrackPrefix + "chi2ndof"       + TrackSuffix, &trackchi2ndof , NULL);
         std::vector<float>*          trackp         = 0;    intree->SetBranchAddress(TrackPrefix + "momentum"       + TrackSuffix, &trackp        , NULL);
@@ -185,6 +198,7 @@ CalibTreesLayerAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup
         std::vector<double>*         tracketa       = 0;    intree->SetBranchAddress(TrackPrefix + "eta"            + TrackSuffix, &tracketa      , NULL);
         std::vector<double>*         trackphi       = 0;    intree->SetBranchAddress(TrackPrefix + "phi"            + TrackSuffix, &trackphi      , NULL);
         std::vector<unsigned int>*   trackhitsvalid = 0;    intree->SetBranchAddress(TrackPrefix + "hitsvalid"      + TrackSuffix, &trackhitsvalid, NULL);
+        std::vector<int>*            trackalgo      = 0;    intree->SetBranchAddress(TrackPrefix + "algo"           + TrackSuffix, &trackalgo     , NULL);
 
         std::vector<int>*            trackindex     = 0;    intree->SetBranchAddress(CalibPrefix + "trackindex"     + CalibSuffix, &trackindex    , NULL);
         std::vector<unsigned int>*   rawid          = 0;    intree->SetBranchAddress(CalibPrefix + "rawid"          + CalibSuffix, &rawid         , NULL);
@@ -201,6 +215,7 @@ CalibTreesLayerAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup
         std::vector<double>*         chargeoverpath = 0;    intree->SetBranchAddress(CalibPrefix + "chargeoverpath" + CalibSuffix, &chargeoverpath, NULL);
         std::vector<unsigned char>*  amplitude      = 0;    intree->SetBranchAddress(CalibPrefix + "amplitude"      + CalibSuffix, &amplitude     , NULL);
         std::vector<double>*         gainused       = 0;    intree->SetBranchAddress(CalibPrefix + "gainused"       + CalibSuffix, &gainused      , NULL);
+        std::vector<double>*         gainusedTick       = 0;    intree->SetBranchAddress(CalibPrefix + "gainusedTick"       + CalibSuffix, &gainusedTick      , NULL);
 
 //        unsigned int nTotEvents = 0;
 //        printf("Number of Events = %i + %i = %i\n", nTotEvents, (unsigned int)intree->GetEntries(), (unsigned int)(nEvents[0] + intree->GetEntries()));
@@ -248,11 +263,11 @@ CalibTreesLayerAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup
                 }
                 if (HIPDEBUG) {std::cout << "Cluster #" << icluster << " belongs to layer " << layer << std::endl;}
                 for (auto it_ls = m_Vlumisections.begin() ; it_ls != m_Vlumisections.end() ; it_ls++)
-                {
+                { // Loop over lumi sections
                     if ((it_ls->startLumi() > luminumber) || (luminumber > it_ls->endLumi()))
                         continue;
                     for (auto it_bxs = m_Sbxs.begin() ; it_bxs != m_Sbxs.end() ; it_bxs++)
-                    {
+                    { // Loop over bx intervals
                         std::vector<std::string> tmp = split(*it_bxs, '-');
                         unsigned int bxlow = std::stoi(tmp[0]);
                         unsigned int bxhigh = std::stoi(tmp[1]);
@@ -269,6 +284,11 @@ CalibTreesLayerAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup
                     } // end of loop over bx intervals
                 } // end of loop over lumi sections
             } // end of loop over clusters
+// FIXME
+//            map_h_PU[h_name]->Fill(PU);
+//            map_h_PU_vs_bx[h_name]->Fill(bxnumber, PU);
+//            map_h_instLumi[h_name]->Fill(instLumi);
+//            map_h_instLumi_vs_bx[h_name]->Fill(bxnumber, instLumi);
         } // end of loop over entries in the calibTree
     } // end of loop over input files
 
@@ -314,6 +334,10 @@ CalibTreesLayerAnalysis::beginJob()
                     std::cout << "Will create histograms corresponding to " << h_name << std::endl;
                     map_h_chargeoverpath[h_name] = new TH1F(("h_chargeoverpath_" + h_name).c_str(), ("h_chargeoverpath_" + h_name).c_str(), 2000, 0, 2000);
                     map_h_chargeoverpath_vs_bx[h_name] = new TH2F(("h_chargeoverpath_vs_bx_" + h_name).c_str(), ("h_chargeoverpath_vs_bx_" + h_name).c_str(), 3600, 0, 3600, 2000, 0, 2000);
+                    map_h_PU[h_name] = new TH1F(("h_PU_" + h_name).c_str(), ("h_PU_" + h_name).c_str(), 2000, 0, 2000);
+                    map_h_PU_vs_bx[h_name] = new TH2F(("h_PU_vs_bx_" + h_name).c_str(), ("h_PU_vs_bx_" + h_name).c_str(), 3600, 0, 3600, 2000, 0, 2000);
+                    map_h_instLumi[h_name] = new TH1F(("h_instLumi_" + h_name).c_str(), ("h_instLumi_" + h_name).c_str(), 2000, 0, 2000);
+                    map_h_instLumi_vs_bx[h_name] = new TH2F(("h_instLumi_vs_bx_" + h_name).c_str(), ("h_instLumi_vs_bx_" + h_name).c_str(), 3600, 0, 3600, 2000, 0, 2000);
                 } // end of loop over bx intervals
             } // end of loop over layers
         } // end of loop over lumisection blocks
@@ -328,6 +352,14 @@ CalibTreesLayerAnalysis::endJob()
     for (auto it = map_h_chargeoverpath.begin() ; it != map_h_chargeoverpath.end() ; it++)
         it->second->Write();
     for (auto it = map_h_chargeoverpath_vs_bx.begin() ; it != map_h_chargeoverpath_vs_bx.end() ; it++)
+        it->second->Write();
+    for (auto it = map_h_PU.begin() ; it != map_h_PU.end() ; it++)
+        it->second->Write();
+    for (auto it = map_h_PU_vs_bx.begin() ; it != map_h_PU_vs_bx.end() ; it++)
+        it->second->Write();
+    for (auto it = map_h_instLumi.begin() ; it != map_h_instLumi.end() ; it++)
+        it->second->Write();
+    for (auto it = map_h_instLumi_vs_bx.begin() ; it != map_h_instLumi_vs_bx.end() ; it++)
         it->second->Write();
     m_output->Write();
 

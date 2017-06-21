@@ -2,10 +2,9 @@
 
 ## First time setup
 
-```c++
-export SCRAM_ARCH=slc6_amd64_gcc491
-cmsrel CMSSW_7_4_15
-cd CMSSW_7_4_15/src
+```bash
+cmsrel CMSSW_9_2_3_patch2
+cd CMSSW_9_2_3_patch2/src
 cmsenv
 git cms-init
 cd ${CMSSW_BASE}/src 
