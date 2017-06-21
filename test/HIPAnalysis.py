@@ -17,7 +17,9 @@ myFileList = []
 #filelist = "/home/fynu/obondu/TRK/CMSSW_7_4_15/src/CalibTracker/HIPAnalysis/test/data/list_calibTrees_SDV_HIP_2016-05-16_02.txt"
 #filelist = "/home/fynu/obondu/TRK/CMSSW_7_4_15/src/CalibTracker/HIPAnalysis/test/data/list_calibTrees_2015-12-11_test_1000LS.txt"
 #filelist = "/home/fynu/obondu/TRK/CMSSW_7_4_15/src/CalibTracker/HIPAnalysis/test/data/list_calibTrees_2015-12-11_1000LS.txt"
-filelist = "/home/fynu/obondu/TRK/CMSSW_7_4_15/src/CalibTracker/HIPAnalysis/test/data/list_calibTrees_274968.txt"
+#filelist = "/home/fynu/obondu/TRK/CMSSW_7_4_15/src/CalibTracker/HIPAnalysis/test/data/list_calibTrees_274968.txt"
+filelist = "/home/fynu/obondu/TRK/CMSSW_8_0_14/src/CalibTracker/HIPAnalysis/test/data/list_calibTrees_APVsettings.txt"
+
 with open(filelist) as f:
     for line in f:
         if '#' in line:
@@ -36,7 +38,7 @@ for i in xrange(0, len(myFileList) / 10 + 1):
 #print "len(myFileSubList)=", len(myFileSubList)
 
 # In this analyser, maxEvents actually represents the number of input files...
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(24) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(31) )
 
 process.HIPAnalysis = cms.EDAnalyzer('HIPAnalysis',
     debug = cms.bool(False),
@@ -46,7 +48,7 @@ process.HIPAnalysis = cms.EDAnalyzer('HIPAnalysis',
     maxEventsPerFile = cms.untracked.int64(-1),
 #    InputFiles = cms.untracked.vstring(myFileSubList[0]),
     InputFiles = cms.untracked.vstring(myFileList),
-    output = cms.string('output_274968.root')
+    output = cms.string('output_APVsettings.root')
 #    output = cms.string('output_SDV_HIP_2016-05-16_00.root')
 #    output = cms.string('output_SDV_HIP_2016-05-16_01.root')
 )
