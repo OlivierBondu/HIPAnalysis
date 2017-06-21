@@ -6,12 +6,12 @@ process.load("FWCore.MessageService.MessageLogger_cfi")
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff")
 process.load('Configuration.StandardSequences.GeometryRecoDB_cff')
 process.load('Configuration.StandardSequences.MagneticField_38T_cff')
-process.GlobalTag.globaltag = "74X_dataRun2_Prompt_v1"
+process.GlobalTag.globaltag = "92X_dataRun2_Prompt_v4"
 
 process.source = cms.Source("EmptySource",)
 
 myFileList = []
-filelist = "/home/fynu/obondu/TRK/CMSSW_7_4_15/src/CalibTracker/HIPAnalysis/test/data/list_calibTrees_274968.txt"
+filelist = "/home/fynu/obondu/TRK/CMSSW_9_2_3_patch2/src/CalibTracker/HIPAnalysis/test/data/list_calibTrees_Fill-5750_Run-296173.txt"
 #filelist = "/home/fynu/obondu/TRK/CMSSW_8_0_14/src/CalibTracker/HIPAnalysis/test/data/list_calibTrees_APVsettings.txt"
 
 with open(filelist) as f:
@@ -32,8 +32,7 @@ for i in xrange(0, len(myFileList) / 10 + 1):
 #print "len(myFileSubList)=", len(myFileSubList)
 
 # In this analyser, maxEvents actually represents the number of input files...
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(24) ) # for run 274968
-#process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(31) ) # for runs 278769 and 278770
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1) ) 
 
 bxs = ['0-3600']
 # for runs 278769 and 278770
@@ -54,21 +53,19 @@ process.CalibTreesLayerAnalysis = cms.EDAnalyzer('CalibTreesLayerAnalysis',
     debug = cms.bool(False),
     maxEventsPerFile = cms.untracked.int64(-1),
     InputFiles = cms.untracked.vstring(myFileList),
-#    inputTreeName = cms.string("gainCalibrationTree/tree")
 #    inputTreeName = cms.string("gainCalibrationTreeAagBunch/tree"),
 #    output = cms.string('histos_APVsettings_AagBunch.root'),
     inputTreeName = cms.string("gainCalibrationTreeStdBunch/tree"),
-    output = cms.string('histos_274968_v3.root'),
-#    output = cms.string('histos_APVsettings_StdBunch_v3.root'),
-    runs = cms.untracked.vint32(274968), # note: override whatever is in the LuminosityBlockRange
+    output = cms.string('histos_296173_v3.root'),
+    runs = cms.untracked.vint32(296173), # note: override whatever is in the LuminosityBlockRange
 #    runs = cms.untracked.vint32(278769, 278770), # note: override whatever is in the LuminosityBlockRange
     lumisections = cms.untracked.VLuminosityBlockRange(
         # First 100 LS
-        cms.LuminosityBlockRange("1:0-1:100"),
+#        cms.LuminosityBlockRange("1:0-1:100"),
         # every 300 LS
-#        cms.LuminosityBlockRange("1:100-1:400"),
-#        cms.LuminosityBlockRange("1:400-1:700"),
-#        cms.LuminosityBlockRange("1:700-1:1000"),
+        cms.LuminosityBlockRange("1:100-1:400"),
+        cms.LuminosityBlockRange("1:400-1:700"),
+        cms.LuminosityBlockRange("1:700-1:1000"),
 #        cms.LuminosityBlockRange("1:1000-1:1300"),
 #        cms.LuminosityBlockRange("1:1300-1:1700"),
 #        cms.LuminosityBlockRange("1:1700-1:2000"),
