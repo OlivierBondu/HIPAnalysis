@@ -21,4 +21,5 @@ test/oldtasks/
 *.root
 
 # Plots
-python/plots*
+*.png
+*.pdf
