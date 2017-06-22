@@ -1,25 +1,25 @@
 #!/bin/env python
 # Python imports
 import os
+import sys
 import json
 import numpy as np
 import collections
 # File location
-#histdir = "/home/fynu/obondu/TRK/CMSSW_7_4_15/src/CalibTracker/HIPAnalysis/python/test_condor/condor/output/"
-#histfile = "histos.root"
-histdir = "/home/fynu/obondu/TRK/CMSSW_7_4_15/src/CalibTracker/HIPAnalysis/"
-histfile = "histos_APVsettings_StdBunch_v3.root"
+histdir = "/home/fynu/obondu/TRK/CMSSW_9_2_3_patch2/src/CalibTracker/HIPAnalysis/test"
+histfile = "histos_296173.root"
 
-plotdir = "160902_perLayer"
+plotdir = "170622_perLayer"
 # ROOT setup
 import ROOT
 from ROOT import TFile, TCanvas, TLatex, TLegend
-ROOT.gROOT.Reset()
+#ROOT.gROOT.Reset()
 ROOT.gROOT.SetBatch()
+ROOT.gROOT.ProcessLine(".x setTDRStyle.C")
 ROOT.gStyle.SetOptTitle(0)
 ROOT.gStyle.SetOptStat(0)
-ROOT.gROOT.ProcessLine(".x setTDRStyle.C")
 ROOT.TGaxis.SetMaxDigits(3)
+
 
 c1 = TCanvas()
 c2 = TCanvas("c2", "c2", 1200, 600)
@@ -43,118 +43,22 @@ layers = ["TOB_L%i" % i for i in xrange(1,2)] # to do only TOB_L1
 #lumisections = [x * 100 for x in xrange(0,20)]
 #lumisections = [x * 100 for x in xrange(0,5)]
 lumisections = [
-        [1,100],
+        [1, 100],
+        [100, 200]
     ]
 
 print 'layers= ', layers
 print 'lumisections= ', lumisections
 
 runs = collections.OrderedDict()
-#runs[257400] = {
-#    "color": ROOT.kRed+1,
-#    "marker": 20,
-#    "intL": "62.19 /pb",
-#    "initialLumi": "2.11e33 cm^{-2}/s",
-#    "date": "15/09/24",
-#    }
-#runs[257487] = {
-#    "color": ROOT.kMagenta+1,
-#    "marker": 21,
-#    "intL": "66.38 /pb",
-#    "initialLumi": "2.84e33 cm^{-2}/s",
-#    "date": "15/09/25",
-#    }
-#runs[257613] = {
-#    "color": ROOT.kBlue+1,
-#    "marker": 22,
-#    "intL": "78.31 /pb",
-#    "initialLumi": "2.63e33 cm^{-2}/s",
-#    "date": "15/09/27",
-#    }
-#runs[257645] = {
-#    "color": ROOT.kCyan+1,
-#    "marker": 23,
-#    "intL": "64.85 /pb",
-#    "initialLumi": "2.91e33 cm^{-2}/s",
-#    "date": "15/09/27",
-#    }
-#runs[257822] = {
-#    "color": ROOT.kMagenta+1,
-#    "marker": 21,
-#    "intL": "77.92 /pb",
-#    "initialLumi": "2.64e33 cm^{-2}/s",
-#    "date": "15/09/29",
-#    }
-#runs[258158] = {
-#    "color": ROOT.kBlue+1,
-#    "marker": 22,
-#    "intL": "108.77 /pb",
-#    "initialLumi": "3.02e33 cm^{-2}/s",
-#    "date": "15/10/02",
-#    }
-#runs[258177] = {
-#    "color": ROOT.kOrange+1,
-#    "marker": 26,
-#    "intL": "120.82 /pb",
-#    "initialLumi": "2.78e33 cm^{-2}/s",
-#    "date": "15/10/03",
-#    }
-#runs[260627] = {
-#    "color": ROOT.kBlue,
-#    "marker": 23,
-#    "intL": "186.11 /pb",
-#    "initialLumi": "5.22e33 cm^{-2}/s",
-#    "date": "15/11/02",
-#    }
-
-#runs[274968] = {
-#    "color": ROOT.kGreen+1,
-#    "marker": 24,
-#    "intL": "192.10 /pb",
-#    "initialLumi": "7.88e33 cm^{-2}/s",
-#    "date": "15/06/12",
-#    }
-
-runs[278769] = {
+runs[296173] = {
     "color": ROOT.kGreen+1,
     "marker": 24,
-    "intL": "192.10 /pb",
-    "initialLumi": "7.88e33 cm^{-2}/s",
-    "date": "15/06/12",
-    "comments": "LS 1-100 ; new APV settings",
+    "intL": "43.1 /pb",
+    "initialLumi": "2.81e33 cm^{-2}/s",
+    "date": "06/06/17",
+    "comments": "",
     }
-
-runs[278770] = {
-    "color": ROOT.kBlue+1,
-    "marker": 25,
-    "intL": "192.10 /pb",
-    "initialLumi": "7.88e33 cm^{-2}/s",
-    "date": "15/06/12",
-    "comments": "LS 1-100 ; old APV settings",
-    }
-
-allInstLumi = {}
-with open('live_lumi.json') as f:
-    allInstLumi = json.load(f)
-
-instLumi = {}
-for k in runs:
-    instLumi[k] = {l: i / 1000. for r, l, i in allInstLumi[u'data'] if r == k}
-
-if 274968 in runs and len(instLumi[274968]) == 0:
-    instLumi[274968] = {}
-    with open("274968.csv") as f:
-        for line in f:
-            if '#' in line:
-                continue
-#            print line.split(',')
-            r, l, t, b, e, delivered, recorded, pu, source = line.split(',')
-            instLumi[274968][int(l.split(':')[0])] = float(recorded) / 1000.
-    
-#print allInstLumi
-#print instLumi[274968][100], "%.1f" % instLumi[274968][100]
-
-#raise AssertionError
 
 f = TFile(os.path.join(histdir, histfile))
 def GetKeyNames( self, dir = "" ):
@@ -163,33 +67,34 @@ def GetKeyNames( self, dir = "" ):
 TFile.GetKeyNames = GetKeyNames
 
 keyList = f.GetKeyNames('')
-#print "\nKeys in file:", keyList
+##print "\nKeys in file:", keyList
 #for k in keyList:
-#    print f.Get(k).ClassName(), k
+#    if ('chargeoverpath' in k) and ('vs_bx' not in k):
+#        print f.Get(k).ClassName(), k
 
 plots = collections.OrderedDict()
-#plots['meanChargeoverpath_vs_bx_zoomed'] = {
-#        'histname': 'h_chargeoverpath_vs_bx',
-#        'class': 'TH2',
-#        'y-max': 800,
-#        'y-min': 200,
-#        'x-min': 50,
-#        'x-max': 170,
-#        'x-title': 'bx number',
-#        'y-title': 'charge / cm',
-#        'rebin': 1,
-#    }
-#plots['chargeoverpath_vs_bx'] = {
-#        'histname': 'h_chargeoverpath_vs_bx',
-#        'class': 'TH2',
-#        'rebin': 10,
-#        'y-max': 800,
-#        'y-min': 200,
-#        'x-min': 0,
-#        'x-max': 3600,
-#        'x-title': 'bx number',
-#        'y-title': 'charge / cm',
-#    }
+plots['meanChargeoverpath_vs_bx_zoomed'] = {
+        'histname': 'h_chargeoverpath_vs_bx',
+        'class': 'TH2',
+        'y-max': 600,
+        'y-min': 350,
+        'x-min': 1050,
+        'x-max': 1300,
+        'x-title': 'bx number',
+        'y-title': 'charge / cm',
+        'rebin': 1,
+    }
+plots['chargeoverpath_vs_bx'] = {
+        'histname': 'h_chargeoverpath_vs_bx',
+        'class': 'TH2',
+        'rebin': 10,
+        'y-max': 600,
+        'y-min': 350,
+        'x-min': 0,
+        'x-max': 3600,
+        'x-title': 'bx number',
+        'y-title': 'charge / cm',
+    }
 plots['chargeoverpath'] = {
         'histname': 'h_chargeoverpath',
         'class': 'TH1',
@@ -197,19 +102,20 @@ plots['chargeoverpath'] = {
         'x-min': 0,
         'x-max': 1000,
         'xrebin': 10,
-        'y-max': 0.06,
+        'y-max': 0.075,
         'y-log': False,
 #        'y-max': 9.0,
 #        'y-log': True,
         'legendColumns': 1,
         'x-title': 'charge / cm',
     }
-bx_list = [60] #, 116, 199, 255, 338, 394] #, 477, 533, 616, 672, 803, 589, 942]
-bxs = []
-#bxs = ['0-3600']
-bxs += ["%i-%i" % (x   , x+16) for x in bx_list]
-bxs += ["%i-%i" % (x+16, x+32) for x in bx_list]
-bxs += ["%i-%i" % (x+32, x+48) for x in bx_list]
+#bx_list = [60] #, 116, 199, 255, 338, 394] #, 477, 533, 616, 672, 803, 589, 942]
+#bxs = []
+bxs = ['0-3600']
+#bxs = ['100-400']
+#bxs += ["%i-%i" % (x   , x+16) for x in bx_list]
+#bxs += ["%i-%i" % (x+16, x+32) for x in bx_list]
+#bxs += ["%i-%i" % (x+32, x+48) for x in bx_list]
 #bxs += ["%i-%i" % (x   , x+24) for x in bx_list]
 #bxs += ["%i-%i" % (x+24, x+48) for x in bx_list]
 
@@ -255,9 +161,9 @@ for ilayer, layer in enumerate(layers):
                                 h.RebinX(plots[plot]['rebin'])
     #                            print "rebinning"
                             p = h.ProfileX()
-                            p.SetLineColor(runs[run]['color'] + ilumisection + ibx)
-                            p.SetMarkerColor(runs[run]['color'] + ilumisection + ibx)
-                            p.SetMarkerStyle(runs[run]['marker'] + ilumisection + ibx)
+                            p.SetLineColor(runs[run]['color'] + ilumisection + ibx*2)
+                            p.SetMarkerColor(runs[run]['color'] + ilumisection + ibx*2)
+                            p.SetMarkerStyle(runs[run]['marker'] + ilumisection + ibx*2)
                             p.GetYaxis().SetTitle(h.GetYaxis().GetTitle())
                             if 'x-title' in plots[plot]:
                                 p.GetXaxis().SetTitle(plots[plot]['x-title'])
@@ -278,8 +184,7 @@ for ilayer, layer in enumerate(layers):
                                 drawoptions ='same'
                             legend.SetHeader(layer)
                             p.Draw(drawoptions)
-                            legend.AddEntry(p.GetName(), '%i %s bx:%s' % (run, runs[run]['comments'], bx), 'lp')
-#                        legend.AddEntry(p.GetName(), '%i %s' % (run, runs[run]['initialLumi']), 'lp')
+                            legend.AddEntry(p.GetName(), '%i %s ls:%i-%i bx:%s' % (run, runs[run]['comments'], lumisection[0], lumisection[1], bx), 'lp')
 #                        legend.AddEntry(p.GetName(), '%i LS %i-%i (%.2f - %.2f e33 cm^{-2}/s)' % (run, lumisection[0], lumisection[1], instLumi[run][lumisection[0]], instLumi[run][lumisection[1]]), 'lp')
                             ROOT.gPad.Modified()
                             ROOT.gPad.Update()
@@ -359,7 +264,7 @@ for ilayer, layer in enumerate(layers):
                             if 'legendColumns' in plots[plot]:
                                 legend.SetNColumns(plots[plot]['legendColumns'])
                             h.Draw(drawoptions)
-                            legend.AddEntry(h.GetName(), '%i %s bx:%s' % (run, runs[run]['comments'], bx), 'l')
+                            legend.AddEntry(h.GetName(), '%i %s ls:%i-%i bx:%s' % (run, runs[run]['comments'], lumisection[0], lumisection[1], bx), 'l')
                         #legend.AddEntry(h.GetName(), '%i %s' % (run, runs[run]['initialLumi']), 'l')
 #                        legend.AddEntry(h.GetName(), '%i LS %i-%i (%.2f - %.2f e33 cm^{-2}/s)' % (run, lumisection[0], lumisection[1], instLumi[run][lumisection[0]], instLumi[run][lumisection[1]]), 'l')
                             ROOT.gPad.Modified()

@@ -43,10 +43,10 @@ bxs = ['0-3600']
 #bxs += ["%i-%i" % (x   , x+24) for x in bx_list]
 #bxs += ["%i-%i" % (x+24, x+48) for x in bx_list]
 # for runs 274968
-bx_list = [112, 221, 330, 439]
-bxs += ["%i-%i" % (x   , x+24) for x in bx_list]
-bxs += ["%i-%i" % (x+24, x+48) for x in bx_list]
-bxs += ["%i-%i" % (x+48, x+72) for x in bx_list]
+#bx_list = [112, 221, 330, 439]
+#bxs += ["%i-%i" % (x   , x+24) for x in bx_list]
+#bxs += ["%i-%i" % (x+24, x+48) for x in bx_list]
+#bxs += ["%i-%i" % (x+48, x+72) for x in bx_list]
 
 
 process.CalibTreesLayerAnalysis = cms.EDAnalyzer('CalibTreesLayerAnalysis',
@@ -56,21 +56,18 @@ process.CalibTreesLayerAnalysis = cms.EDAnalyzer('CalibTreesLayerAnalysis',
 #    inputTreeName = cms.string("gainCalibrationTreeAagBunch/tree"),
 #    output = cms.string('histos_APVsettings_AagBunch.root'),
     inputTreeName = cms.string("gainCalibrationTreeStdBunch/tree"),
-    output = cms.string('histos_296173_v3.root'),
+    output = cms.string('histos_296173.root'),
     runs = cms.untracked.vint32(296173), # note: override whatever is in the LuminosityBlockRange
 #    runs = cms.untracked.vint32(278769, 278770), # note: override whatever is in the LuminosityBlockRange
     lumisections = cms.untracked.VLuminosityBlockRange(
         # First 100 LS
-#        cms.LuminosityBlockRange("1:0-1:100"),
+        cms.LuminosityBlockRange("1:0-1:100"),
         # every 300 LS
-        cms.LuminosityBlockRange("1:100-1:400"),
-        cms.LuminosityBlockRange("1:400-1:700"),
-        cms.LuminosityBlockRange("1:700-1:1000"),
-#        cms.LuminosityBlockRange("1:1000-1:1300"),
-#        cms.LuminosityBlockRange("1:1300-1:1700"),
-#        cms.LuminosityBlockRange("1:1700-1:2000"),
+#        cms.LuminosityBlockRange("1:100-1:400"),
+#        cms.LuminosityBlockRange("1:400-1:700"),
+#        cms.LuminosityBlockRange("1:700-1:1000"),
         # every 100 LS
-#        cms.LuminosityBlockRange("1:100-1:200"),
+        cms.LuminosityBlockRange("1:100-1:200"),
 #        cms.LuminosityBlockRange("1:200-1:300"),
 #        cms.LuminosityBlockRange("1:300-1:400"),
 #        cms.LuminosityBlockRange("1:400-1:500"),
