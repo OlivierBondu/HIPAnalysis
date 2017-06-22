@@ -102,10 +102,6 @@ class CalibTreesLayerAnalysis : public edm::EDAnalyzer {
         // Histograms
         std::map<std::string, TH1F*> map_h_chargeoverpath;
         std::map<std::string, TH2F*> map_h_chargeoverpath_vs_bx;
-        std::map<std::string, TH1F*> map_h_PU;
-        std::map<std::string, TH2F*> map_h_PU_vs_bx;
-        std::map<std::string, TH1F*> map_h_instLumi;
-        std::map<std::string, TH2F*> map_h_instLumi_vs_bx;
 };
 
 //
@@ -145,14 +141,6 @@ CalibTreesLayerAnalysis::~CalibTreesLayerAnalysis()
     for (auto it = map_h_chargeoverpath.begin() ; it != map_h_chargeoverpath.end() ; it++)
         delete (*it).second;
     for (auto it = map_h_chargeoverpath_vs_bx.begin() ; it != map_h_chargeoverpath_vs_bx.end() ; it++)
-        delete (*it).second;
-    for (auto it = map_h_PU.begin() ; it != map_h_PU.end() ; it++)
-        delete (*it).second;
-    for (auto it = map_h_PU_vs_bx.begin() ; it != map_h_PU_vs_bx.end() ; it++)
-        delete (*it).second;
-    for (auto it = map_h_instLumi.begin() ; it != map_h_instLumi.end() ; it++)
-        delete (*it).second;
-    for (auto it = map_h_instLumi_vs_bx.begin() ; it != map_h_instLumi_vs_bx.end() ; it++)
         delete (*it).second;
     m_output->Close();
 }
@@ -284,11 +272,6 @@ CalibTreesLayerAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup
                     } // end of loop over bx intervals
                 } // end of loop over lumi sections
             } // end of loop over clusters
-// FIXME
-//            map_h_PU[h_name]->Fill(PU);
-//            map_h_PU_vs_bx[h_name]->Fill(bxnumber, PU);
-//            map_h_instLumi[h_name]->Fill(instLumi);
-//            map_h_instLumi_vs_bx[h_name]->Fill(bxnumber, instLumi);
         } // end of loop over entries in the calibTree
     } // end of loop over input files
 
@@ -334,10 +317,6 @@ CalibTreesLayerAnalysis::beginJob()
                     std::cout << "Will create histograms corresponding to " << h_name << std::endl;
                     map_h_chargeoverpath[h_name] = new TH1F(("h_chargeoverpath_" + h_name).c_str(), ("h_chargeoverpath_" + h_name).c_str(), 2000, 0, 2000);
                     map_h_chargeoverpath_vs_bx[h_name] = new TH2F(("h_chargeoverpath_vs_bx_" + h_name).c_str(), ("h_chargeoverpath_vs_bx_" + h_name).c_str(), 3600, 0, 3600, 2000, 0, 2000);
-                    map_h_PU[h_name] = new TH1F(("h_PU_" + h_name).c_str(), ("h_PU_" + h_name).c_str(), 2000, 0, 2000);
-                    map_h_PU_vs_bx[h_name] = new TH2F(("h_PU_vs_bx_" + h_name).c_str(), ("h_PU_vs_bx_" + h_name).c_str(), 3600, 0, 3600, 2000, 0, 2000);
-                    map_h_instLumi[h_name] = new TH1F(("h_instLumi_" + h_name).c_str(), ("h_instLumi_" + h_name).c_str(), 2000, 0, 2000);
-                    map_h_instLumi_vs_bx[h_name] = new TH2F(("h_instLumi_vs_bx_" + h_name).c_str(), ("h_instLumi_vs_bx_" + h_name).c_str(), 3600, 0, 3600, 2000, 0, 2000);
                 } // end of loop over bx intervals
             } // end of loop over layers
         } // end of loop over lumisection blocks
@@ -352,14 +331,6 @@ CalibTreesLayerAnalysis::endJob()
     for (auto it = map_h_chargeoverpath.begin() ; it != map_h_chargeoverpath.end() ; it++)
         it->second->Write();
     for (auto it = map_h_chargeoverpath_vs_bx.begin() ; it != map_h_chargeoverpath_vs_bx.end() ; it++)
-        it->second->Write();
-    for (auto it = map_h_PU.begin() ; it != map_h_PU.end() ; it++)
-        it->second->Write();
-    for (auto it = map_h_PU_vs_bx.begin() ; it != map_h_PU_vs_bx.end() ; it++)
-        it->second->Write();
-    for (auto it = map_h_instLumi.begin() ; it != map_h_instLumi.end() ; it++)
-        it->second->Write();
-    for (auto it = map_h_instLumi_vs_bx.begin() ; it != map_h_instLumi_vs_bx.end() ; it++)
         it->second->Write();
     m_output->Write();
 
