@@ -29,4 +29,25 @@ git clone -o upstream git@github.com:blinkseb/TreeWrapper.git CalibTracker/TreeW
 git clone -o upstream git@github.com:OlivierBondu/HIPAnalysis.git CalibTracker/HIPAnalysis
 cd ${CMSSW_BASE}/src/
 scram b -j 4
+cd CalibTracker/HIPAnalysis
 ```
+
+## Code orientation
+
+#### For plotting S/N as a function of the BX (a.k.a. charge/path vs BX)
+
+1. First, you need to list the `calibTree` you are interested in
+   * Usually they are in places like `/store/group/dpg_tracker_strip/comm_tracker/Strip/Calibration/calibrationtree/GR17/`
+   * Create a file in `test/data` containing the full (eos) path of the files your interested in, see for example [`test/data/list_calibTrees_Fill-5750_Run-296173.txt`](https://github.com/OlivierBondu/HIPAnalysis/blob/master/test/data/list_calibTrees_Fill-5750_Run-296173.txt) (note: putting `#` at the beginning of the line will skip the file)
+1. Then, you want to create the histograms from the `calibTree`
+   * The core code reading the `calibTree` and producing the histograms is [`plugins/CalibTreesLayerAnalysis.cc`](https://github.com/OlivierBondu/HIPAnalysis/blob/master/plugins/CalibTreesLayerAnalysis.cc)
+   * The corresponding configuration file is [`test/CalibTreesLayerAnalysis.py`](https://github.com/OlivierBondu/HIPAnalysis/blob/master/test/CalibTreesLayerAnalysis.py): edit, then run it via `cmsRun CalibTreesLayerAnalysis.py` 
+      * or through CRAB if you have a lot of files (**Work in progress**, *crab config file to be updated*)
+   * **Important Note**: the number of events *should not exceed the number of files you are reading*
+1. You know have the histograms! yeah! all you have to do now is plot them:
+   * The plotter is [`python/plotLayerHistos.py`](https://github.com/OlivierBondu/HIPAnalysis/blob/master/python/plotLayerHistos.py): edit, then run it via `python plotLayerHistos.py`
+1. Look at the plots, and finally do the physics: interpret them
+
+#### For plotting something else: instructions not ready yet
+
+But you're welcome to have a look around of course! Beware there are pieces of code that are useless at this point. There has been no thorough clean-up yet.
