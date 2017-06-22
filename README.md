@@ -3,6 +3,7 @@
 #### Where am I?
 
 This is a CMSSW 'analyzer' running onto tracker DPG `calibTree`, centrally produced, for analyses purposes. This package was designed for the investigation the SiStrip dynamic inefficiency in 2015-2016. Initially, the phenomenon was (incorrectly) believed to be due mainly to Heavy Ionizing Particles, aka HIP. Hence the name.
+_I'm sorry if the package is not clean with plenty of unused stuff all over the place, this was meant for my own usage at first, I'll be back and clean it at some point._
 
 #### Why CMSSW and not a plain ROOT macro?
 
