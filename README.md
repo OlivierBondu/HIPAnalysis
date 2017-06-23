@@ -43,8 +43,9 @@ cd CalibTracker/HIPAnalysis
 1. Then, you want to create the histograms from the `calibTree`
    * The core code reading the `calibTree` and producing the histograms is [`plugins/CalibTreesLayerAnalysis.cc`](https://github.com/OlivierBondu/HIPAnalysis/blob/master/plugins/CalibTreesLayerAnalysis.cc)
    * The corresponding configuration file is [`test/CalibTreesLayerAnalysis.py`](https://github.com/OlivierBondu/HIPAnalysis/blob/master/test/CalibTreesLayerAnalysis.py): edit, then run it via `cmsRun CalibTreesLayerAnalysis.py` 
-      * or through CRAB if you have a lot of files (**Work in progress**, *crab config file to be updated*)
-   * **Important Note**: the number of events *should not exceed the number of files you are reading*
+      * **Important Note**: the number of events *should not exceed the number of files you are reading*
+   * Or run the analyzer via CRAB if you have a lot of files to analyse. The configuration file is [`test/crab_CalibTreesLayerAnalysis.py`](https://github.com/OlivierBondu/HIPAnalysis/blob/master/test/crab_CalibTreesLayerAnalysis.py). Edit, then run it via `crab submit crab_CalibTreesLayerAnalysis.py`
+      * **Important Note**: make sure the `config.Data.totalUnits` matches the number of files you are reading!
 1. You know have the histograms! yeah! all you have to do now is plot them:
    * The plotter is [`python/plotLayerHistos.py`](https://github.com/OlivierBondu/HIPAnalysis/blob/master/python/plotLayerHistos.py): edit, then run it via `python plotLayerHistos.py`
 1. Look at the plots, and finally do the physics: interpret them
