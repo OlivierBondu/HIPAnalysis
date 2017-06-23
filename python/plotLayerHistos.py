@@ -6,6 +6,7 @@ import json
 import numpy as np
 import collections
 # File location
+# CRAB output dir: /storage/data/cms/store/user/obondu/CRAB_PrivateMC/crab_CalibTreesLayerAnalysis/170622_161745/0000/
 histdir = "/home/fynu/obondu/TRK/CMSSW_9_2_3_patch2/src/CalibTracker/HIPAnalysis/test"
 histfile = "histos_296173.root"
 
