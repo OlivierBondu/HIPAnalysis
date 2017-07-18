@@ -9,7 +9,7 @@ import urllib2
 def get_options():
     parser = argparse.ArgumentParser(description='Return the filled bunches for a given run')
     parser.add_argument('--run', action='store', dest='run',
-                        default=296173,
+                        default=296173, type=int,
                         help='Run for which the BX has to be fetched')
     options = parser.parse_args()
     return options
@@ -31,7 +31,13 @@ def get_bucket_list(reader):
 
 def get_fill_number(run):
     # FIXME
-    fill = 5750
+    fill = None
+    if run == 296173:
+        fill = 5750
+    if run == 297673:
+        fill = 5883
+    if run == 299061:
+        fill = 5950
     return fill
 
 def main(run):

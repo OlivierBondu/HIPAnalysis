@@ -102,7 +102,9 @@ class anEffAnalysis : public edm::EDAnalyzer {
         // Histograms
         std::map<std::string, TH1F*> map_h_ClusterStoN;
         std::map<std::string, TH2F*> map_h_ClusterStoN_vs_bx;
-        std::map<std::string, TH2F*> map_h_ClusterStoN_vs_bx_custom;
+        std::map<std::string, TH2F*> map_h_ClusterStoN_vs_bx_custom1;
+        std::map<std::string, TH2F*> map_h_ClusterStoN_vs_bx_custom2;
+        std::map<std::string, TH2F*> map_h_ClusterStoN_vs_bx_custom3;
 };
 
 //
@@ -144,7 +146,11 @@ anEffAnalysis::~anEffAnalysis()
         delete (*it).second;
     for (auto it = map_h_ClusterStoN_vs_bx.begin() ; it != map_h_ClusterStoN_vs_bx.end() ; it++)
         delete (*it).second;
-    for (auto it = map_h_ClusterStoN_vs_bx_custom.begin() ; it != map_h_ClusterStoN_vs_bx_custom.end() ; it++)
+    for (auto it = map_h_ClusterStoN_vs_bx_custom1.begin() ; it != map_h_ClusterStoN_vs_bx_custom1.end() ; it++)
+        delete (*it).second;
+    for (auto it = map_h_ClusterStoN_vs_bx_custom2.begin() ; it != map_h_ClusterStoN_vs_bx_custom2.end() ; it++)
+        delete (*it).second;
+    for (auto it = map_h_ClusterStoN_vs_bx_custom3.begin() ; it != map_h_ClusterStoN_vs_bx_custom3.end() ; it++)
         delete (*it).second;
     m_output->Close();
 }
@@ -264,7 +270,9 @@ anEffAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
                 if (HIPDEBUG) {std::cout << "\tAdding cluster to histo " << h_name << std::endl;}
                 map_h_ClusterStoN[h_name]->Fill(ClusterStoN);
                 map_h_ClusterStoN_vs_bx[h_name]->Fill(bunchx, ClusterStoN);
-                map_h_ClusterStoN_vs_bx_custom[h_name]->Fill(bunchx, ClusterStoN);
+                map_h_ClusterStoN_vs_bx_custom1[h_name]->Fill(bunchx, ClusterStoN);
+                map_h_ClusterStoN_vs_bx_custom2[h_name]->Fill(bunchx, ClusterStoN);
+                map_h_ClusterStoN_vs_bx_custom3[h_name]->Fill(bunchx, ClusterStoN);
             } // end of loop over bx intervals
         } // end of loop over entries in the calibTree
     } // end of loop over input files
@@ -290,9 +298,15 @@ anEffAnalysis::beginJob()
                 std::cout << "Will create histograms corresponding to " << h_name << std::endl;
                 map_h_ClusterStoN[h_name] = new TH1F(("h_ClusterStoN_" + h_name).c_str(), ("h_ClusterStoN_" + h_name).c_str(), 2000, 0, 2000);
                 map_h_ClusterStoN_vs_bx[h_name] = new TH2F(("h_ClusterStoN_vs_bx_" + h_name).c_str(), ("h_ClusterStoN_vs_bx_" + h_name).c_str(), 3600, 0, 3600, 2000, 0, 2000);
-                const int nbins = 30;
-                Double_t EDGES[nbins + 1] = {0, 1, 2, 41, 53, 183, 231, 266, 314, 349, 397, 1077, 1125, 1160, 1208, 1243, 1291, 1971, 2019, 2054, 2102, 2137, 2185, 2865, 2913, 2948, 2996, 3031, 3079, 3563, 3600};
-                map_h_ClusterStoN_vs_bx_custom[h_name] = new TH2F(("h_ClusterStoN_vs_bx_custom_" + h_name).c_str(), ("h_ClusterStoN_vs_bx_custom_" + h_name).c_str(), nbins, EDGES, 2000, 0, 2000);
+                const int nbins1 = 30;
+                Double_t edges1[nbins1 + 1] = {0, 1, 2, 41, 53, 183, 231, 266, 314, 349, 397, 1077, 1125, 1160, 1208, 1243, 1291, 1971, 2019, 2054, 2102, 2137, 2185, 2865, 2913, 2948, 2996, 3031, 3079, 3563, 3600};
+                map_h_ClusterStoN_vs_bx_custom1[h_name] = new TH2F(("h_ClusterStoN_vs_bx_custom1_" + h_name).c_str(), ("h_ClusterStoN_vs_bx_custom1_" + h_name).c_str(), nbins1, edges1, 2000, 0, 2000);
+                const int nbins2 = 108;
+                Double_t edges2[nbins2 + 1] = {0, 56, 104, 111, 159, 190, 238, 245, 293, 300, 348, 379, 427, 434, 482, 489, 537, 568, 616, 623, 671, 678, 726, 761, 809, 816, 864, 895, 943, 950, 998, 1005, 1053, 1084, 1132, 1139, 1187, 1194, 1242, 1273, 1321, 1328, 1376, 1383, 1431, 1462, 1510, 1517, 1565, 1572, 1620, 1655, 1703, 1710, 1758, 1789, 1837, 1844, 1892, 1899, 1947, 1978, 2026, 2033, 2081, 2088, 2136, 2167, 2215, 2222, 2270, 2277, 2325, 2356, 2404, 2411, 2459, 2466, 2514, 2549, 2597, 2604, 2652, 2683, 2731, 2738, 2786, 2793, 2841, 2872, 2920, 2927, 2975, 2982, 3030, 3061, 3109, 3116, 3164, 3171, 3219, 3250, 3298, 3305, 3353, 3360, 3408, 3563, 3600};
+                map_h_ClusterStoN_vs_bx_custom2[h_name] = new TH2F(("h_ClusterStoN_vs_bx_custom2_" + h_name).c_str(), ("h_ClusterStoN_vs_bx_custom2_" + h_name).c_str(), nbins2, edges2, 2000, 0, 2000);
+                const int nbins3 = 94;
+                Double_t edges3[nbins3 + 1] = {0, 65, 113, 120, 168, 175, 223, 254, 302, 309, 357, 364, 412, 443, 491, 498, 546, 553, 601, 770, 818, 825, 873, 880, 928, 959, 1007, 1014, 1062, 1069, 1117, 1148, 1196, 1203, 1251, 1258, 1306, 1337, 1385, 1392, 1440, 1447, 1495, 1579, 1580, 1664, 1712, 1719, 1767, 1774, 1822, 1853, 1901, 1908, 1956, 1963, 2011, 2042, 2090, 2097, 2145, 2152, 2200, 2231, 2279, 2286, 2334, 2341, 2389, 2558, 2606, 2613, 2661, 2668, 2716, 2747, 2795, 2802, 2850, 2857, 2905, 2936, 2984, 2991, 3039, 3046, 3094, 3125, 3173, 3180, 3228, 3235, 3283, 3563, 3600};
+                map_h_ClusterStoN_vs_bx_custom3[h_name] = new TH2F(("h_ClusterStoN_vs_bx_custom3_" + h_name).c_str(), ("h_ClusterStoN_vs_bx_custom3_" + h_name).c_str(), nbins3, edges3, 2000, 0, 2000);
             } // end of loop over bx intervals
         } // end of loop over layers
     } // end of loop over runs
@@ -307,7 +321,11 @@ anEffAnalysis::endJob()
         it->second->Write();
     for (auto it = map_h_ClusterStoN_vs_bx.begin() ; it != map_h_ClusterStoN_vs_bx.end() ; it++)
         it->second->Write();
-    for (auto it = map_h_ClusterStoN_vs_bx_custom.begin() ; it != map_h_ClusterStoN_vs_bx_custom.end() ; it++)
+    for (auto it = map_h_ClusterStoN_vs_bx_custom1.begin() ; it != map_h_ClusterStoN_vs_bx_custom1.end() ; it++)
+        it->second->Write();
+    for (auto it = map_h_ClusterStoN_vs_bx_custom2.begin() ; it != map_h_ClusterStoN_vs_bx_custom2.end() ; it++)
+        it->second->Write();
+    for (auto it = map_h_ClusterStoN_vs_bx_custom3.begin() ; it != map_h_ClusterStoN_vs_bx_custom3.end() ; it++)
         it->second->Write();
     m_output->Write();
 

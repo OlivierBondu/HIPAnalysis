@@ -9,9 +9,17 @@ from array import array
 # File location
 # CRAB output dir: /storage/data/cms/store/user/obondu/CRAB_PrivateMC/crab_CalibTreesLayerAnalysis/170622_161745/0000/
 histdir = "/home/fynu/obondu/TRK/CMSSW_9_2_3_patch2/src/CalibTracker/HIPAnalysis/test"
-histfile = "histos_custom_all_296173.root"
+#histfile = "histos_custom_all_296173.root"
+#histfile = "histos_custom_one_296173.root"
+#histfile = "histos_custom_one_297673.root"
+#histfile = "histos_custom_one_299061.root"
+#histfile = "histos_custom_three_299061.root"
+histfile = "histos.root"
 
-plotdir = "170718_perLayer"
+#plotdir = "170718_perLayer"
+#plotdir = "170718_perLayer_297673"
+plotdir = "170718_perLayer_297674"
+#plotdir = "170718_perLayer_299061"
 # ROOT setup
 import ROOT
 from ROOT import TFile, TCanvas, TLatex, TLegend
@@ -47,7 +55,10 @@ layers = ["TOB_L%i" % i for i in xrange(1,2)] # to do only TOB_L1
 lumisections = [
         [1, 100],
     ]
-edges = [0, 1, 2, 41, 53, 183, 231, 266, 314, 349, 397, 1077, 1125, 1160, 1208, 1243, 1291, 1971, 2019, 2054, 2102, 2137, 2185, 2865, 2913, 2948, 2996, 3031, 3079, 3563, 3600]
+#edges = [0, 1, 2, 41, 53, 183, 231, 266, 314, 349, 397, 1077, 1125, 1160, 1208, 1243, 1291, 1971, 2019, 2054, 2102, 2137, 2185, 2865, 2913, 2948, 2996, 3031, 3079, 3563, 3600]
+edges = [0, 56, 104, 111, 159, 190, 238, 245, 293, 300, 348, 379, 427, 434, 482, 489, 537, 568, 616, 623, 671, 678, 726, 761, 809, 816, 864, 895, 943, 950, 998, 1005, 1053, 1084, 1132, 1139, 1187, 1194, 1242, 1273, 1321, 1328, 1376, 1383, 1431, 1462, 1510, 1517, 1565, 1572, 1620, 1655, 1703, 1710, 1758, 1789, 1837, 1844, 1892, 1899, 1947, 1978, 2026, 2033, 2081, 2088, 2136, 2167, 2215, 2222, 2270, 2277, 2325, 2356, 2404, 2411, 2459, 2466, 2514, 2549, 2597, 2604, 2652, 2683, 2731, 2738, 2786, 2793, 2841, 2872, 2920, 2927, 2975, 2982, 3030, 3061, 3109, 3116, 3164, 3171, 3219, 3250, 3298, 3305, 3353, 3360, 3408, 3563, 3600]
+#edges = [0, 65, 113, 120, 168, 175, 223, 254, 302, 309, 357, 364, 412, 443, 491, 498, 546, 553, 601, 770, 818, 825, 873, 880, 928, 959, 1007, 1014, 1062, 1069, 1117, 1148, 1196, 1203, 1251, 1258, 1306, 1337, 1385, 1392, 1440, 1447, 1495, 1579, 1580, 1664, 1712, 1719, 1767, 1774, 1822, 1853, 1901, 1908, 1956, 1963, 2011, 2042, 2090, 2097, 2145, 2152, 2200, 2231, 2279, 2286, 2334, 2341, 2389, 2558, 2606, 2613, 2661, 2668, 2716, 2747, 2795, 2802, 2850, 2857, 2905, 2936, 2984, 2991, 3039, 3046, 3094, 3125, 3173, 3180, 3228, 3235, 3283, 3563, 3600]
+
 
 
 print 'layers= ', layers
@@ -62,6 +73,31 @@ runs[296173] = {
     "date": "06/06/17",
     "comments": "",
     }
+runs[297673] = {
+    "color": ROOT.kBlue+1,
+    "marker": 24,
+    "intL": "43.1 /pb",
+    "initialLumi": "2.81e33 cm^{-2}/s",
+    "date": "06/06/17",
+    "comments": "",
+    }
+runs[297674] = {
+    "color": ROOT.kBlue+1,
+    "marker": 24,
+    "intL": "43.1 /pb",
+    "initialLumi": "2.81e33 cm^{-2}/s",
+    "date": "06/06/17",
+    "comments": "",
+    }
+runs[299061] = {
+    "color": ROOT.kRed+1,
+    "marker": 24,
+    "intL": "43.1 /pb",
+    "initialLumi": "2.81e33 cm^{-2}/s",
+    "date": "06/06/17",
+    "comments": "",
+}
+
 
 f = TFile(os.path.join(histdir, histfile))
 def GetKeyNames( self, dir = "" ):
@@ -77,11 +113,11 @@ keyList = f.GetKeyNames('')
 
 plots = collections.OrderedDict()
 plots['h_ClusterStoN_vs_bx'] = {
-        'histname': 'h_ClusterStoN_vs_bx_custom',
+        'histname': 'h_ClusterStoN_vs_bx_custom2',
         'class': 'TH2',
 #        'rebin': 10,
-        'y-min': 40,
-        'y-max': 45,
+        'y-min': 20,
+        'y-max': 70,
         'x-min': 0,
         'x-max': 3600,
         'x-title': 'bx number',
@@ -147,13 +183,13 @@ for ilayer, layer in enumerate(layers):
                             if h.GetEntries() == 0:
 #                            print 'empty histo, skipping'
                                 continue
-#                            print 'key= ', k
-#                            print plots[plot]['histname']
-#                            print layer
+                            print 'key= ', k
+                            print plots[plot]['histname']
+                            print layer
 #                            print '_%i-%i_%s' % (lumisection[0], lumisection[1], layer)
-#                            print h.GetEntries()
-#                            print ''
-#                            print ''
+                            print h.GetEntries()
+                            print ''
+                            print ''
                             if 'TH2' not in h.ClassName():
                                 continue
                             drawoptions = ''
@@ -176,6 +212,7 @@ for ilayer, layer in enumerate(layers):
                                 p.SetMaximum(plots[plot]['y-max'])
                             ymin = p.GetMinimum()
                             ymax = p.GetMaximum()
+                            print ymin, ymax
                             if 'x-max' in plots[plot]:
                                 p.GetXaxis().SetRangeUser(plots[plot]['x-min'], plots[plot]['x-max'])
                             c2.SetGrid()

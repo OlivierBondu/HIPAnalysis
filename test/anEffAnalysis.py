@@ -11,8 +11,11 @@ process.GlobalTag.globaltag = "92X_dataRun2_Prompt_v4"
 process.source = cms.Source("EmptySource",)
 
 myFileList = []
-filelist = "/home/fynu/obondu/TRK/CMSSW_9_2_3_patch2/src/CalibTracker/HIPAnalysis/test/data/list_calibTrees_Fill-5750_Run-296173.txt"
-#filelist = "/home/fynu/obondu/TRK/CMSSW_8_0_14/src/CalibTracker/HIPAnalysis/test/data/list_calibTrees_APVsettings.txt"
+#filelist = "/home/fynu/obondu/TRK/CMSSW_9_2_3_patch2/src/CalibTracker/HIPAnalysis/test/data/list_calibTrees_Fill-5750_Run-296173.txt"
+#filelist = "/home/fynu/obondu/TRK/CMSSW_9_2_3_patch2/src/CalibTracker/HIPAnalysis/test/data/list_calibTrees_Fill-5883_Run-297673.txt"
+#filelist = "/home/fynu/obondu/TRK/CMSSW_9_2_3_patch2/src/CalibTracker/HIPAnalysis/test/data/list_calibTrees_Fill-5883_Run-297674.txt"
+filelist = "/home/fynu/obondu/TRK/CMSSW_9_2_3_patch2/src/CalibTracker/HIPAnalysis/test/data/list_calibTrees_Fill-5950_Run-299061.txt"
+#filelist = "/home/fynu/obondu/TRK/CMSSW_9_2_3_patch2/src/CalibTracker/HIPAnalysis/test/data/"
 
 with open(filelist) as f:
     for line in f:
@@ -45,7 +48,7 @@ process.anEffAnalysis = cms.EDAnalyzer('anEffAnalysis',
 #    output = cms.string('histos_APVsettings_AagBunch.root'),
     inputTreeName = cms.string("anEff/traj"),
     output = cms.string('histos.root'),
-    runs = cms.untracked.vint32(296173), # note: override whatever is in the LuminosityBlockRange
+    runs = cms.untracked.vint32(299061), # note: override whatever is in the LuminosityBlockRange
     # FIXME: LUMISECTION IS NOT IN THE TREE
     lumisections = cms.untracked.VLuminosityBlockRange(
         # First 100 LS
@@ -109,8 +112,9 @@ for ib, b in enumerate(process.anEffAnalysis.bxs):
 # filter on layers: FIXME is not available in the anEff tree
 # put the final string into the argument to be passed to the analyzer
 if len(filter_exp) == 0:
-    process.anEffAnalysis.filter_exp = cms.string('1')
+    process.anEffAnalysis.filter_exp = cms.string('trajHitValid == 1')
 else:
+    filter_exp += ' && (trajHitValid == 1)'
     process.anEffAnalysis.filter_exp = cms.string(filter_exp)
 
 process.TkDetMap = cms.Service("TkDetMap")
