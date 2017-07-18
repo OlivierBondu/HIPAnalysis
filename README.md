@@ -2,7 +2,7 @@
 
 #### Where am I?
 
-This is a CMSSW 'analyzer' running onto tracker DPG `calibTree`, centrally produced, for analyses purposes. This package was designed for the investigation the SiStrip dynamic inefficiency in 2015-2016. Initially, the phenomenon was (incorrectly) believed to be due mainly to Heavy Ionizing Particles, aka HIP. Hence the name.
+This is a CMSSW 'analyzer' running onto tracker DPG `calibTree` files, centrally produced, for analyses purposes. This package was designed for the investigation the SiStrip dynamic inefficiency in 2015-2016. Initially, the phenomenon was (incorrectly) believed to be due mainly to Heavy Ionizing Particles, aka HIP. Hence the name.
 _I'm sorry if the package is not clean with plenty of unused stuff all over the place, this was meant for my own usage at first, I'll be back and clean it at some point._
 
 #### Why CMSSW and not a plain ROOT macro?
@@ -11,8 +11,7 @@ Because there are a lot of `calibTree` out there. So, to have a better scaling f
 
 #### CRAB, really? but `calibTree` are not EDM files?
 
-Yes, the trick here is to have CRAB believes it is doing MC production, which gives some more freedom about this
-. The analyzer will read one `calibTree` file per produced 'MC event'. This system do have some overhead, but I believe it's scaling much better.
+Yes, the trick here is to have CRAB believes it is doing MC production, which gives some more freedom about this. The analyzer will read one `calibTree` file per produced 'MC event'. This system do have some overhead, but I believe it's scaling much better. 
 
 #### Ok, let's go!
 
@@ -35,7 +34,7 @@ cd CalibTracker/HIPAnalysis
 
 ## Code orientation
 
-#### For plotting S/N as a function of the BX (a.k.a. charge/path vs BX)
+#### For plotting charge/path as a function of the BX
 
 1. First, you need to list the `calibTree` you are interested in
    * Usually they are in places like `/store/group/dpg_tracker_strip/comm_tracker/Strip/Calibration/calibrationtree/GR17/`
@@ -48,6 +47,23 @@ cd CalibTracker/HIPAnalysis
       * **Important Note**: make sure the `config.Data.totalUnits` matches the number of files you are reading!
 1. You know have the histograms! yeah! all you have to do now is plot them:
    * The plotter is [`python/plotLayerHistos.py`](https://github.com/OlivierBondu/HIPAnalysis/blob/master/python/plotLayerHistos.py): edit, then run it via `python plotLayerHistos.py`
+1. Look at the plots, and finally do the physics: interpret them
+
+#### For plotting signal/noise as a function of the BX
+
+_Note: this is in large part a copy-paste of the instructions above_
+
+1. First, you need to list the `calibTree` files you are interested in
+   * Usually they are in places like `/store/group/dpg_tracker_strip/comm_tracker/Strip/Calibration/calibrationtree/GR17/`
+   * Create a file in `test/data` containing the full (eos) path of the files your interested in, see for example [`test/data/list_calibTrees_Fill-5750_Run-296173.txt`](https://github.com/OlivierBondu/HIPAnalysis/blob/master/test/data/list_calibTrees_Fill-5750_Run-296173.txt) (note: putting `#` at the beginning of the line will skip the file)
+1. Then, you want to create the histograms from the `anEff/traj` trees within the `calibTree` files
+   * The core code reading the `anEff/traj` and producing the histograms is [`plugins/anEffAnalysis.cc`](https://github.com/OlivierBondu/HIPAnalysis/blob/master/plugins/anEffAnalysis.cc)
+   * The corresponding configuration file is [`test/anEffAnalysis.py`](https://github.com/OlivierBondu/HIPAnalysis/blob/master/test/anEffAnalysis.py): edit, then run it via `cmsRun anEffAnalysis.py` 
+      * **Important Note**: the number of events *should not exceed the number of files you are reading*
+   * Or run the analyzer via CRAB if you have a lot of files to analyse. The configuration file is [`test/crab_anEffAnalysis.py`](https://github.com/OlivierBondu/HIPAnalysis/blob/master/test/crab_anEffAnalysis.py). Edit, then run it via `crab submit crab_anEffAnalysis.py`
+      * **Important Note**: make sure the `config.Data.totalUnits` matches the number of files you are reading!
+1. You know have the histograms! yeah! all you have to do now is plot them:
+   * The plotter is [`python/plotanEff.py`](https://github.com/OlivierBondu/HIPAnalysis/blob/master/python/plotanEff.py): edit, then run it via `python plotanEff.py`
 1. Look at the plots, and finally do the physics: interpret them
 
 #### For plotting something else: instructions not ready yet
