@@ -34,6 +34,10 @@ cd CalibTracker/HIPAnalysis
 
 ## Code orientation
 
+#### Get the bunch filling scheme structure
+
+A helper script exist: try to run [`python scripts/getFillScheme.py`](https://github.com/OlivierBondu/HIPAnalysis/blob/master/scripts/getFillScheme.py). You need as an input the bunch fill number. It uses the [LPC API](https://lpc.web.cern.ch/cgi-bin/schemeInfo.py?fill=5750&fmt=json) to extract the bunch fill structure. Ultimately, it will be used in combination with the [run registry API](https://cmswbmoff.web.cern.ch/cmswbmoff/api) to give the bunch filling scheme, such as [this wbm page is doing](https://cmswbm.cern.ch/cmsdb/servlet/BunchFill?FILL=5750).
+
 #### For plotting charge/path as a function of the BX
 
 1. First, you need to list the `calibTree` you are interested in
