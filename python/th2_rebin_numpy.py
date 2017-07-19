@@ -149,7 +149,6 @@ def _TH2F_rebinX(hist, newXEdges, name=None, title=None):
       name      name for the new TH2F object
       title     title for the new TH2F object (if name is given but not title, name is used instead)
     """
-    print 'currently rebinning x'
     ret = th2_to_ndarray(hist)
 
     newsumw2 = None
