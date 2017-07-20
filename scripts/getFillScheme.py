@@ -5,6 +5,8 @@ import pprint
 import StringIO
 import csv
 import urllib2
+import subprocess
+import os
 
 def get_options():
     parser = argparse.ArgumentParser(description='Return the filled bunches for a given run')
@@ -30,15 +32,18 @@ def get_bucket_list(reader):
     return l
 
 def get_fill_number(run):
-    # FIXME
-    fill = None
-    if run == 296173:
-        fill = 5750
-    if run == 297673:
-        fill = 5883
-    if run == 299061:
-        fill = 5950
-    return fill
+    # Note: in principle we could access this more cleanly through the Run Registry API
+    # https://twiki.cern.ch/twiki/bin/viewauth/CMS/DqmRrApi
+    # but I cannot manage to have it run if not on lxplus
+    print 'Getting fill number from DAS'
+    p = subprocess.Popen(['das_client', '--query', 'run=%i' % run, '--format=json'], stdout=subprocess.PIPE)
+    stdout = p.communicate()
+    tmp = json.loads(stdout[0])
+    tmp = tmp['data'][0]['run']
+    tmp = [x for x in tmp if len(x) > 1]
+    lhcFill = tmp[0]['lhcFill']
+    print 'lhcFill=', lhcFill
+    return lhcFill
 
 def main(run):
     # Get the fill number
@@ -48,6 +53,7 @@ def main(run):
     LPC_API = 'https://lpc.web.cern.ch/cgi-bin/schemeInfo.py'
     QUERY = '?fill=%i&fmt=json' % n_fill
     # curl -o fill_5750.json https://lpc.web.cern.ch/cgi-bin/schemeInfo.py\?fill\=5750\&fmt\=json
+    print 'Getting fill scheme from LPC'
     request = urllib2.Request('%s%s' % (LPC_API, QUERY))
     response = urllib2.urlopen(request)
     with open(fill_scheme_file, 'w') as f:
@@ -55,7 +61,13 @@ def main(run):
     d = None
     scheme = []
     n_colliding_bx = None
+    bx_scheme_name = None
     with open(fill_scheme_file, 'r') as f:
+        d = d = json.load(f)
+        bx_scheme_name = d['fills']['%i' % n_fill]['name']
+    bx_scheme_name += '.json'
+    os.rename(fill_scheme_file, bx_scheme_name)
+    with open(bx_scheme_name, 'r') as f:
         d = json.load(f)
         # content similar to https://cmswbm.cern.ch/FillPatterns/25ns_601b_589_522_540_48bpi15inj_bcms.txt
         # taken from https://lpc.web.cern.ch/cgi-bin/schemeInfo.py?fill=5750&fmt=json
@@ -95,7 +107,7 @@ def main(run):
         edges.append(3563)
     print 'n_edges = %i' % n_edges
     print 'edges:', edges
-
+    print 'results printed to file %s' % bx_scheme_name
 
 if __name__ == '__main__':
     options = get_options()
