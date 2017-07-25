@@ -6,6 +6,7 @@ import json
 import numpy as np
 import collections
 from array import array
+import th2_rebin_numpy
 # File location
 # CRAB output dir: /storage/data/cms/store/user/obondu/CRAB_PrivateMC/crab_CalibTreesLayerAnalysis/170622_161745/0000/
 histdir = "/home/fynu/obondu/TRK/CMSSW_9_2_3_patch2/src/CalibTracker/HIPAnalysis/test"
@@ -113,13 +114,14 @@ keyList = f.GetKeyNames('')
 
 plots = collections.OrderedDict()
 plots['h_ClusterStoN_vs_bx'] = {
-        'histname': 'h_ClusterStoN_vs_bx_custom2',
+        'histname': 'h_ClusterStoN_vs_bx',
         'class': 'TH2',
 #        'rebin': 10,
         'y-min': 20,
         'y-max': 70,
-        'x-min': 0,
-        'x-max': 3600,
+#        'x-min': 0,
+#        'x-max': 3600,
+        'x-custom': True,
         'x-title': 'bx number',
         'y-title': 'signal / noise',
     }
@@ -172,6 +174,8 @@ for ilayer, layer in enumerate(layers):
                         for k in keyList:
                             if plots[plot]['histname'] not in k:
                                 continue
+                            if 'custom' in k:
+                                continue
                             if layer not in k or str(run) not in k:
                                 continue
 #                        if 'LS_%i-%i_%s' % (lumisection[0], lumisection[1], layer) not in k:
@@ -197,6 +201,8 @@ for ilayer, layer in enumerate(layers):
                             if 'rebin' in plots[plot]:
                                 h.RebinX(plots[plot]['rebin'])
 #                                print "rebinning"
+                            if plots[plot]['x-custom']:
+                                h.rebinX(edges)
                             p = h.ProfileX()
                             p.SetLineColor(runs[run]['color'] + ilumisection + ibx*2)
                             p.SetMarkerColor(runs[run]['color'] + ilumisection + ibx*2)

@@ -112,9 +112,10 @@ for ib, b in enumerate(process.anEffAnalysis.bxs):
 # filter on layers: FIXME is not available in the anEff tree
 # put the final string into the argument to be passed to the analyzer
 if len(filter_exp) == 0:
-    process.anEffAnalysis.filter_exp = cms.string('trajHitValid == 1')
+    process.anEffAnalysis.filter_exp = cms.string('(ModIsBad == 0) && (SiStripQualBad == 0) && (withinAcceptance == 1) && (trajHitValid == 1) && (layer == 5)')
+#    process.anEffAnalysis.filter_exp = cms.string('1')
 else:
-    filter_exp += ' && (trajHitValid == 1)'
+    filter_exp += ' && (ModIsBad == 0) && (SiStripQualBad == 0) && (withinAcceptance == 1) && (trajHitValid == 1) && (layer == 5)'
     process.anEffAnalysis.filter_exp = cms.string(filter_exp)
 
 process.TkDetMap = cms.Service("TkDetMap")
