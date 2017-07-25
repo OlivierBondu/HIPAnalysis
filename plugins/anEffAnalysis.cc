@@ -23,18 +23,25 @@
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/EDAnalyzer.h"
+#include "FWCore/Framework/interface/ESHandle.h"
 
 #include "FWCore/Framework/interface/Event.h"
+#include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
 // Tracker geometry
 #include "CalibTracker/SiStripCommon/interface/TkDetMap.h"
+#include "DataFormats/TrackerCommon/interface/TrackerTopology.h"
+#include "DataFormats/SiStripDetId/interface/StripSubdetector.h"
+#include "Geometry/Records/interface/TrackerTopologyRcd.h"
 
 // ROOT includes
-#include "TChain.h"
+#include "TCanvas.h"
 #include "TFile.h"
+#include "TTree.h"
+#include "TChain.h"
 #include "TH1F.h"
 #include "TH2F.h"
 
@@ -69,6 +76,7 @@ class anEffAnalysis : public edm::EDAnalyzer {
         virtual void beginJob() override;
         virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
         virtual void endJob() override;
+        unsigned int checkLayer( unsigned int iidd, const TrackerTopology* tTopo);
 
       //virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
       //virtual void endRun(edm::Run const&, edm::EventSetup const&) override;
@@ -102,9 +110,6 @@ class anEffAnalysis : public edm::EDAnalyzer {
         // Histograms
         std::map<std::string, TH1F*> map_h_ClusterStoN;
         std::map<std::string, TH2F*> map_h_ClusterStoN_vs_bx;
-        std::map<std::string, TH2F*> map_h_ClusterStoN_vs_bx_custom1;
-        std::map<std::string, TH2F*> map_h_ClusterStoN_vs_bx_custom2;
-        std::map<std::string, TH2F*> map_h_ClusterStoN_vs_bx_custom3;
 };
 
 //
@@ -146,12 +151,6 @@ anEffAnalysis::~anEffAnalysis()
         delete (*it).second;
     for (auto it = map_h_ClusterStoN_vs_bx.begin() ; it != map_h_ClusterStoN_vs_bx.end() ; it++)
         delete (*it).second;
-    for (auto it = map_h_ClusterStoN_vs_bx_custom1.begin() ; it != map_h_ClusterStoN_vs_bx_custom1.end() ; it++)
-        delete (*it).second;
-    for (auto it = map_h_ClusterStoN_vs_bx_custom2.begin() ; it != map_h_ClusterStoN_vs_bx_custom2.end() ; it++)
-        delete (*it).second;
-    for (auto it = map_h_ClusterStoN_vs_bx_custom3.begin() ; it != map_h_ClusterStoN_vs_bx_custom3.end() ; it++)
-        delete (*it).second;
     m_output->Close();
 }
 
@@ -160,10 +159,36 @@ anEffAnalysis::~anEffAnalysis()
 // member functions
 //
 
+// Duplicated from
+// https://github.com/cms-sw/cmssw/blob/3c369381b186f8aa7f0379883aacf93f712612c8/CalibTracker/SiStripHitEfficiency/src/HitEff.cc#L813-L833
+// FIXME Note: since this is also about reading data stored in anEff/traj trees, and that it doesn't access any data from HitEff, probably the method should be made static
+unsigned int anEffAnalysis::checkLayer( unsigned int iidd, const TrackerTopology* tTopo) {
+    StripSubdetector strip=StripSubdetector(iidd);
+    unsigned int subid=strip.subdetId();
+    if (subid ==  StripSubdetector::TIB) {
+        return tTopo->tibLayer(iidd);
+    }
+    if (subid ==  StripSubdetector::TOB) {
+        return tTopo->tobLayer(iidd) + 4 ;
+    }
+    if (subid ==  StripSubdetector::TID) {
+        return tTopo->tidWheel(iidd) + 10;
+    }
+    if (subid ==  StripSubdetector::TEC) {
+        return tTopo->tecWheel(iidd) + 13 ;
+    }
+    return 0;
+}
+
+
 // ------------ method called for each event  ------------
 void
 anEffAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
+    // Get the geometry
+//    edm::ESHandle<TrackerTopology> tTopo_handle;
+//    iSetup.get<TrackerTopologyRcd>().get(tTopo_handle);
+///    const TrackerTopology* tTopo = tTopo_handle.product();
     unsigned long long ievent = iEvent.id().event();
     unsigned long long ifile = ievent - 1;
     if (ifile < VInputFiles.size())
@@ -173,12 +198,8 @@ anEffAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
         // The tree is flat, so let's filter out events that do not interest us
         // NB: the expression is done in the python config file because it's easier in python than in C++
-        // FIXME: the full copy adds some overhead, so let's kill this for now
-        TChain* intree = new TChain(m_input_treename.c_str());
-        intree->Add(VInputFiles[ifile].c_str());
-//        TChain* chained_intree = new TChain(m_input_treename.c_str());
-//        chained_intree->Add(VInputFiles[ifile].c_str());
-//        TTree *intree = chained_intree->CopyTree(m_filter_exp.c_str());
+        TFile *infile = TFile::Open(VInputFiles[ifile].c_str());
+        TTree *intree = (TTree*)infile->Get(m_input_treename.c_str());
 
         // List of variables taken from https://github.com/cms-sw/cmssw/blob/3c369381b186f8aa7f0379883aacf93f712612c8/CalibTracker/SiStripHitEfficiency/interface/HitEff.h#L84-L101
         float TrajGlbX = 0.;                intree->SetBranchAddress("TrajGlbX", &TrajGlbX, NULL);
@@ -221,60 +242,29 @@ anEffAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 //        float instLumi = 0.;                intree->SetBranchAddress("instLumi", &instLumi, NULL);
 //        float PU = 0.;                      intree->SetBranchAddress("PU", &PU, NULL);
 //        float commonMode = 0.;              intree->SetBranchAddress("commonMode", &commonMode, NULL);
-// TODO
-// layer
+        unsigned int layer = 0;             intree->SetBranchAddress("layer", &layer, NULL);
 
 
-//        unsigned int nTotEvents = 0;
-//        printf("Number of Events = %i + %i = %i\n", nTotEvents, (unsigned int)intree->GetEntries(), (unsigned int)(nEvents[0] + intree->GetEntries()));
-        unsigned int maxEntries = m_max_events_per_file > 0 ? std::min(m_max_events_per_file, (Long64_t)intree->GetEntries()) : intree->GetEntries();
-        if (HIPDEBUG) {maxEntries = 2; }
-
-        
-        for (unsigned int ientry = 0; ientry < maxEntries; ientry++)
-        { // Loop over entries in the calib Trees
-            if ((!HIPDEBUG) && ((ientry % 1000 == 0 && ientry < 10000) || (ientry % 10000 == 0)))
-                std::cout << "# Processing event " << ientry << " / " << maxEntries << std::endl;
-            else if (HIPDEBUG)
-                std::cout << "# Processing event " << ientry << " / " << maxEntries << std::endl;
-            intree->GetEntry(ientry);
-            if (HIPDEBUG)
-                std::cout << "Event: Run " << run << ", Lumisection " << "XXXXX" << ", Event " << event << ", BX " << bunchx << std::endl;
-
-            // Skip event if it is not in the short list of requested events
-            if (m_Sruns.find(run) == m_Sruns.end())
+        for (auto it_runs = m_Sruns.begin() ; it_runs != m_Sruns.end() ; it_runs++)
+        {
+            for (auto it_layers = m_Slayers.begin() ; it_layers != m_Slayers.end() ; it_layers++)
             {
-                if (HIPDEBUG) {std::cout << "run #" << run << " not in the list of required runs, skipping the event" << std::endl;}
-                continue;
-            }
+                for (auto it_bxs = m_Sbxs.begin() ; it_bxs != m_Sbxs.end() ; it_bxs++)
+                {
+                    TCanvas *c1 = new TCanvas();
+                    std::string h_name = 
+                        std::to_string(*it_runs) + '_'
+                        + (*it_layers)
+                        + "_bxs_" + (*it_bxs);
+                    intree->Draw(("ClusterStoN>>+h_ClusterStoN_" + h_name + "(2000, 0, 2000)").c_str(), m_filter_exp.c_str(), "");
+                    TH1F *h = (TH1F*)c1->GetPrimitive(("h_ClusterStoN_" + h_name).c_str());
+                    map_h_ClusterStoN[h_name] = h;
 
-            int layerid =  tkLayerMap_->layerSearch(Id);
-            std::string layer = tkDetMap_->getLayerName(layerid);
-            auto it_layers = m_Slayers.find(layer);
-            if (it_layers == m_Slayers.end())
-            {
-                continue;
+                    intree->Draw("ClusterStoN:bunchx>>h3(3600, 0, 3600, 2000, 0, 2000)", m_filter_exp.c_str(), "colz");
+                    map_h_ClusterStoN_vs_bx[h_name] = (TH2F*)(c1->GetPrimitive("h3"));
+                }
             }
-            if (HIPDEBUG) {std::cout << "Hit #" << ientry << " belongs to layer " << layer << std::endl;}
-            for (auto it_bxs = m_Sbxs.begin() ; it_bxs != m_Sbxs.end() ; it_bxs++)
-            { // Loop over bx intervals
-                std::vector<std::string> tmp = anEffAnalysisTool::split(*it_bxs, '-');
-                int bxlow = std::stoi(tmp[0]);
-                int bxhigh = std::stoi(tmp[1]);
-                if ((bxlow > bunchx) || (bunchx > bxhigh))
-                    continue;
-                std::string h_name =
-                    std::to_string(run) + '_'
-                    + (*it_layers)
-                    + "_bxs_" + (*it_bxs);
-                if (HIPDEBUG) {std::cout << "\tAdding cluster to histo " << h_name << std::endl;}
-                map_h_ClusterStoN[h_name]->Fill(ClusterStoN);
-                map_h_ClusterStoN_vs_bx[h_name]->Fill(bunchx, ClusterStoN);
-                map_h_ClusterStoN_vs_bx_custom1[h_name]->Fill(bunchx, ClusterStoN);
-                map_h_ClusterStoN_vs_bx_custom2[h_name]->Fill(bunchx, ClusterStoN);
-                map_h_ClusterStoN_vs_bx_custom3[h_name]->Fill(bunchx, ClusterStoN);
-            } // end of loop over bx intervals
-        } // end of loop over entries in the calibTree
+        }
     } // end of loop over input files
 } // end of anEffAnalysis::analyze
 
@@ -298,36 +288,33 @@ anEffAnalysis::beginJob()
                 std::cout << "Will create histograms corresponding to " << h_name << std::endl;
                 map_h_ClusterStoN[h_name] = new TH1F(("h_ClusterStoN_" + h_name).c_str(), ("h_ClusterStoN_" + h_name).c_str(), 2000, 0, 2000);
                 map_h_ClusterStoN_vs_bx[h_name] = new TH2F(("h_ClusterStoN_vs_bx_" + h_name).c_str(), ("h_ClusterStoN_vs_bx_" + h_name).c_str(), 3600, 0, 3600, 2000, 0, 2000);
-                const int nbins1 = 30;
-                Double_t edges1[nbins1 + 1] = {0, 1, 2, 41, 53, 183, 231, 266, 314, 349, 397, 1077, 1125, 1160, 1208, 1243, 1291, 1971, 2019, 2054, 2102, 2137, 2185, 2865, 2913, 2948, 2996, 3031, 3079, 3563, 3600};
-                map_h_ClusterStoN_vs_bx_custom1[h_name] = new TH2F(("h_ClusterStoN_vs_bx_custom1_" + h_name).c_str(), ("h_ClusterStoN_vs_bx_custom1_" + h_name).c_str(), nbins1, edges1, 2000, 0, 2000);
-                const int nbins2 = 108;
-                Double_t edges2[nbins2 + 1] = {0, 56, 104, 111, 159, 190, 238, 245, 293, 300, 348, 379, 427, 434, 482, 489, 537, 568, 616, 623, 671, 678, 726, 761, 809, 816, 864, 895, 943, 950, 998, 1005, 1053, 1084, 1132, 1139, 1187, 1194, 1242, 1273, 1321, 1328, 1376, 1383, 1431, 1462, 1510, 1517, 1565, 1572, 1620, 1655, 1703, 1710, 1758, 1789, 1837, 1844, 1892, 1899, 1947, 1978, 2026, 2033, 2081, 2088, 2136, 2167, 2215, 2222, 2270, 2277, 2325, 2356, 2404, 2411, 2459, 2466, 2514, 2549, 2597, 2604, 2652, 2683, 2731, 2738, 2786, 2793, 2841, 2872, 2920, 2927, 2975, 2982, 3030, 3061, 3109, 3116, 3164, 3171, 3219, 3250, 3298, 3305, 3353, 3360, 3408, 3563, 3600};
-                map_h_ClusterStoN_vs_bx_custom2[h_name] = new TH2F(("h_ClusterStoN_vs_bx_custom2_" + h_name).c_str(), ("h_ClusterStoN_vs_bx_custom2_" + h_name).c_str(), nbins2, edges2, 2000, 0, 2000);
-                const int nbins3 = 94;
-                Double_t edges3[nbins3 + 1] = {0, 65, 113, 120, 168, 175, 223, 254, 302, 309, 357, 364, 412, 443, 491, 498, 546, 553, 601, 770, 818, 825, 873, 880, 928, 959, 1007, 1014, 1062, 1069, 1117, 1148, 1196, 1203, 1251, 1258, 1306, 1337, 1385, 1392, 1440, 1447, 1495, 1579, 1580, 1664, 1712, 1719, 1767, 1774, 1822, 1853, 1901, 1908, 1956, 1963, 2011, 2042, 2090, 2097, 2145, 2152, 2200, 2231, 2279, 2286, 2334, 2341, 2389, 2558, 2606, 2613, 2661, 2668, 2716, 2747, 2795, 2802, 2850, 2857, 2905, 2936, 2984, 2991, 3039, 3046, 3094, 3125, 3173, 3180, 3228, 3235, 3283, 3563, 3600};
-                map_h_ClusterStoN_vs_bx_custom3[h_name] = new TH2F(("h_ClusterStoN_vs_bx_custom3_" + h_name).c_str(), ("h_ClusterStoN_vs_bx_custom3_" + h_name).c_str(), nbins3, edges3, 2000, 0, 2000);
             } // end of loop over bx intervals
         } // end of loop over layers
     } // end of loop over runs
 
 }
 
+void anEffAnalysis::fitAll()
+{
+    return
+}
+
 // ------------ method called once each job just after ending the event loop  ------------
 void 
 anEffAnalysis::endJob() 
 {
-    for (auto it = map_h_ClusterStoN.begin() ; it != map_h_ClusterStoN.end() ; it++)
+    m_output->cd();
+    for (auto it = map_h_ClusterStoN.begin() ; it != map_h_ClusterStoN.end() ; it++) {
+        std::cout << "#entries to file= " << it->second->GetEntries() << std::endl;
         it->second->Write();
-    for (auto it = map_h_ClusterStoN_vs_bx.begin() ; it != map_h_ClusterStoN_vs_bx.end() ; it++)
+    }
+    for (auto it = map_h_ClusterStoN_vs_bx.begin() ; it != map_h_ClusterStoN_vs_bx.end() ; it++) {
+        std::cout << "#entries to file= " << it->second->GetEntries() << std::endl;
         it->second->Write();
-    for (auto it = map_h_ClusterStoN_vs_bx_custom1.begin() ; it != map_h_ClusterStoN_vs_bx_custom1.end() ; it++)
-        it->second->Write();
-    for (auto it = map_h_ClusterStoN_vs_bx_custom2.begin() ; it != map_h_ClusterStoN_vs_bx_custom2.end() ; it++)
-        it->second->Write();
-    for (auto it = map_h_ClusterStoN_vs_bx_custom3.begin() ; it != map_h_ClusterStoN_vs_bx_custom3.end() ; it++)
-        it->second->Write();
+    }
     m_output->Write();
+    if (m_perform_fit)
+        fitAll();
 
     auto end_time = clock::now();
     std::cout << std::endl << "Job done in " << std::chrono::duration_cast<ms>(end_time - m_start_time).count() / 1000. << "s" << std::endl;
