@@ -81,6 +81,7 @@ process.anEffAnalysis = cms.EDAnalyzer('anEffAnalysis',
     bxs = cms.untracked.vstring(bxs),
 # expression to filter out the input tree to speed things up
     filter_exp = cms.string(''),
+    perform_fit = cms.bool(True),
 )
 filter_exp = ''
 # filter on runs

@@ -44,6 +44,16 @@
 #include "TChain.h"
 #include "TH1F.h"
 #include "TH2F.h"
+#include "TF1.h"
+
+// RooFit includes
+#include "RooPlot.h"
+#include "RooRealVar.h"
+#include "RooDataHist.h"
+#include "RooAddPdf.h"
+#include "RooGaussian.h"
+#include "RooLandau.h"
+#include "RooFFTConvPdf.h"
 
 // C++ includes
 #include <iostream>
@@ -64,6 +74,9 @@ namespace anEffAnalysisTool {
 // class declaration
 //
 
+TF1 * f2 = NULL;
+TF1 * f3 = NULL;
+
 class anEffAnalysis : public edm::EDAnalyzer {
     public:
         explicit anEffAnalysis(const edm::ParameterSet&);
@@ -76,7 +89,10 @@ class anEffAnalysis : public edm::EDAnalyzer {
         virtual void beginJob() override;
         virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
         virtual void endJob() override;
+        std::string histname(int run, std::string layer, std::string bx);
         unsigned int checkLayer( unsigned int iidd, const TrackerTopology* tTopo);
+        static Double_t function_sum(Double_t *x, Double_t *par);
+        void fitAll();
 
       //virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
       //virtual void endRun(edm::Run const&, edm::EventSetup const&) override;
@@ -96,6 +112,7 @@ class anEffAnalysis : public edm::EDAnalyzer {
         std::vector<std::string> m_Vlayers;
         std::vector<std::string> m_Vbxs;
         std::string m_filter_exp;
+        bool m_perform_fit;
         // Internal things
         std::unordered_set<int> m_Sruns;
         std::unordered_set<std::string> m_Slayers;
@@ -133,7 +150,8 @@ m_Vruns(iConfig.getUntrackedParameter<std::vector<int>>("runs")),
 m_Vlumisections(iConfig.getUntrackedParameter<std::vector<edm::LuminosityBlockRange>>("lumisections")),
 m_Vlayers(iConfig.getUntrackedParameter<std::vector<std::string>>("layers")),
 m_Vbxs(iConfig.getUntrackedParameter<std::vector<std::string>>("bxs")),
-m_filter_exp(iConfig.getParameter<std::string>("filter_exp"))
+m_filter_exp(iConfig.getParameter<std::string>("filter_exp")),
+m_perform_fit(iConfig.getParameter<bool>("perform_fit"))
 {
    //now do what ever initialization is needed
     m_output.reset(TFile::Open(m_output_filename.c_str(), "recreate"));
@@ -180,6 +198,9 @@ unsigned int anEffAnalysis::checkLayer( unsigned int iidd, const TrackerTopology
     return 0;
 }
 
+std::string anEffAnalysis::histname(int run, std::string layer, std::string bx) {
+    return std::to_string(run) + '_' + (layer) + "_bxs_" + (bx);
+}
 
 // ------------ method called for each event  ------------
 void
@@ -252,16 +273,16 @@ anEffAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
                 for (auto it_bxs = m_Sbxs.begin() ; it_bxs != m_Sbxs.end() ; it_bxs++)
                 {
                     TCanvas *c1 = new TCanvas();
-                    std::string h_name = 
-                        std::to_string(*it_runs) + '_'
-                        + (*it_layers)
-                        + "_bxs_" + (*it_bxs);
+                    std::string h_name = histname(*it_runs, *it_layers, *it_bxs); 
                     intree->Draw(("ClusterStoN>>+h_ClusterStoN_" + h_name + "(2000, 0, 2000)").c_str(), m_filter_exp.c_str(), "");
                     TH1F *h = (TH1F*)c1->GetPrimitive(("h_ClusterStoN_" + h_name).c_str());
                     map_h_ClusterStoN[h_name] = h;
 
                     intree->Draw("ClusterStoN:bunchx>>h3(3600, 0, 3600, 2000, 0, 2000)", m_filter_exp.c_str(), "colz");
                     map_h_ClusterStoN_vs_bx[h_name] = (TH2F*)(c1->GetPrimitive("h3"));
+                    // necessary because of the weird way the graph is translated into a TH2F automatically by root
+                    map_h_ClusterStoN_vs_bx[h_name]->SetName(("h_ClusterStoN_vs_bx_" + h_name).c_str());
+                    map_h_ClusterStoN_vs_bx[h_name]->SetTitle(("h_ClusterStoN_vs_bx_" + h_name).c_str());
                 }
             }
         }
@@ -281,10 +302,8 @@ anEffAnalysis::beginJob()
         {
             for (auto it_bxs = m_Sbxs.begin() ; it_bxs != m_Sbxs.end() ; it_bxs++)
             {
-                std::string h_name = 
-                    std::to_string(*it_runs) + '_'
-                    + (*it_layers)
-                    + "_bxs_" + (*it_bxs);
+                // FIXME: check everything is fine if opening several files
+                std::string h_name = histname(*it_runs, *it_layers, *it_bxs);
                 std::cout << "Will create histograms corresponding to " << h_name << std::endl;
                 map_h_ClusterStoN[h_name] = new TH1F(("h_ClusterStoN_" + h_name).c_str(), ("h_ClusterStoN_" + h_name).c_str(), 2000, 0, 2000);
                 map_h_ClusterStoN_vs_bx[h_name] = new TH2F(("h_ClusterStoN_vs_bx_" + h_name).c_str(), ("h_ClusterStoN_vs_bx_" + h_name).c_str(), 3600, 0, 3600, 2000, 0, 2000);
@@ -294,9 +313,92 @@ anEffAnalysis::beginJob()
 
 }
 
+Double_t anEffAnalysis::function_sum(Double_t *x, Double_t *par) {
+    const Double_t xx =x[0];
+    return (1 - par[0]) * f2->Eval(xx) / par[1] + (par[0]) * f3->Eval(xx) / par[2];
+    //return (par[0]) * f2->Eval(xx) + (1 - par[0]) * f3->Eval(xx);
+}
+
 void anEffAnalysis::fitAll()
 {
-    return
+    TCanvas *c1 = new TCanvas();
+    for (auto it_runs = m_Sruns.begin() ; it_runs != m_Sruns.end() ; it_runs++)
+    {
+        for (auto it_layers = m_Slayers.begin() ; it_layers != m_Slayers.end() ; it_layers++)
+        {
+            for (auto it_bxs = m_Sbxs.begin() ; it_bxs != m_Sbxs.end() ; it_bxs++)
+            {
+                // Define common things for the different fits
+                std::string h_name = histname(*it_runs, *it_layers, *it_bxs);
+                c1->Clear();
+                Double_t xmin = 0;
+                Double_t xmax = 100;
+                RooRealVar StoN("StoN", "S / N", xmin, xmax);
+                RooPlot* frame = StoN.frame();
+                RooDataHist datahist("datahist", "datahist", StoN, RooFit::Import(*map_h_ClusterStoN[h_name]));
+                datahist.plotOn(frame);
+
+                // Try Landau convolved with a gaussian
+                RooRealVar meanG("meanG", "meanG", 0);
+                RooRealVar sigmaG("sigmaG", "sigmaG", 1, 0.1, 20);
+                RooRealVar meanL("meanL", "meanL", 30, 10, 50);
+                RooRealVar sigmaL("sigmaL", "sigmaL", 0.1, 100);
+                RooGaussian gaussian("gaussian", "gaussian", StoN, meanG, sigmaG);
+                RooLandau landau("landau", "landau", StoN, meanL, sigmaL);
+                // Set #bins to be used for FFT sampling to 10000
+                StoN.setBins(10000, "cache");
+                RooFFTConvPdf model("model", "landau (X) gauss", StoN, landau, gaussian) ;
+                model.fitTo(datahist);
+                model.plotOn(frame, RooFit::LineColor(kBlue));
+                // Get the maxima
+                // lxg == landau (X) gauss
+                TF1 *lxg = model.asTF(RooArgList(StoN));
+                Double_t xmax_lxg = lxg->GetMaximumX();
+                Double_t ymax_lxg = lxg->GetMaximum();
+                Double_t x1_lxg = lxg->GetX(ymax_lxg / 2., xmin, xmax_lxg);
+                Double_t x2_lxg = lxg->GetX(ymax_lxg / 2., xmax_lxg, xmax);
+                if (HIPDEBUG) {
+                    std::cout << "From TF1, maximum at (x, y) = (" << xmax_lxg << " , " << ymax_lxg << ")" << std::endl;
+                    std::cout << "From TF1, FWHM at (x1, x2) = (" << x1_lxg << " , " << x2_lxg << ")" << std::endl;
+                }
+
+                // Try landau + a gaussian
+                RooRealVar meanG2("meanG2", "meanG2", 30, 10, 50);
+                RooRealVar sigmaG2("sigmaG2", "sigmaG2", 1, 0.1, 50);
+                RooRealVar meanL2("meanL2", "meanL2", 30, 10, 50);
+                RooRealVar sigmaL2("sigmaL2", "sigmaL2", 0.1, 100);
+                RooGaussian gaussian2("gaussian2", "gaussian2", StoN, meanG2, sigmaG2);
+                RooLandau landau2("landau2", "landau2", StoN, meanL2, sigmaL2);
+                RooRealVar x("x", "x", 0.1, 0, 0.4);
+                RooAddPdf model2("model2", "model2", gaussian2, landau2, x);
+                model2.fitTo(datahist);
+                model2.plotOn(frame, RooFit::LineColor(kRed));
+                // Get the maxima
+                // lpg == landau + gauss
+                f2 = landau2.asTF(RooArgList(StoN));
+                f3 = gaussian2.asTF(RooArgList(StoN));
+                TF1 *lpg = new TF1("Sum", function_sum, 0, 100, 3);
+                lpg->SetParameter(0, x.getVal());
+                lpg->SetParameter(1, f2->Integral(0, 100));
+                lpg->SetParameter(2, f3->Integral(0, 100));
+                Double_t xmax_lpg = lpg->GetMaximumX();
+                Double_t ymax_lpg = lpg->GetMaximum();
+                Double_t x1_lpg = lpg->GetX(ymax_lpg / 2., xmin, xmax_lpg);
+                Double_t x2_lpg = lpg->GetX(ymax_lpg / 2., xmax_lpg, xmax);
+                if (HIPDEBUG) {
+                    std::cout << "From TF1, maximum at (x, y) = (" << xmax_lpg << " , " << ymax_lpg << ")" << std::endl;
+                    std::cout << "From TF1, FWHM at (x1, x2) = (" << x1_lpg << " , " << x2_lpg << ")" << std::endl;
+                }
+
+                // Redraw data on top and print / store everything
+                datahist.plotOn(frame);
+                // FIXME: store everything
+                frame->Draw();
+                c1->Print("test.pdf");
+                std::cout << "end" << std::endl;
+            } // end of loop over bx intervals
+        } // end of loop over layers
+    } // end of loop over runs
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
@@ -313,8 +415,13 @@ anEffAnalysis::endJob()
         it->second->Write();
     }
     m_output->Write();
-    if (m_perform_fit)
+    auto histo_time = clock::now();
+    std::cout << std::endl << "Histos done in " << std::chrono::duration_cast<ms>(histo_time - m_start_time).count() / 1000. << "s" << std::endl;
+    if (m_perform_fit) {
         fitAll();
+        auto fit_time = clock::now();
+        std::cout << std::endl << "Fits done in " << std::chrono::duration_cast<ms>(fit_time - histo_time).count() / 1000. << "s" << std::endl;
+    }
 
     auto end_time = clock::now();
     std::cout << std::endl << "Job done in " << std::chrono::duration_cast<ms>(end_time - m_start_time).count() / 1000. << "s" << std::endl;
