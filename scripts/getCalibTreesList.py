@@ -41,9 +41,12 @@ def getCalibTreesList(username, run):
 #        ticket = subprocess.check_output(['kinit', '%s@CERN.CH' % username])
         p = subprocess.Popen(['kinit', '%s@CERN.CH' % username])
         p.communicate()
-    print "Running eos ls on lxplus" 
+    print "Listing the available calibTrees via eos ls on lxplus" 
     fulllist = subprocess.check_output(['ssh', '%s@lxplus.cern.ch' % username, 'ls', fullpath])
     fulllist = [x for x in fulllist.split('\n') if str(run) in x]
+    if len(fulllist) == 0:
+        print 'There is no calibTrees associated with run %i, exiting' % run
+        return
 
     with open(outfilename, 'w') as outfile:
         for f in fulllist:
