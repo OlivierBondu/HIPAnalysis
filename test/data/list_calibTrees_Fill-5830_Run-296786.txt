@@ -1,0 +1,15 @@
+/store/group/dpg_tracker_strip/comm_tracker/Strip/Calibration/calibrationtree/GR17/calibTree_296786_100.root
+/store/group/dpg_tracker_strip/comm_tracker/Strip/Calibration/calibrationtree/GR17/calibTree_296786_125.root
+/store/group/dpg_tracker_strip/comm_tracker/Strip/Calibration/calibrationtree/GR17/calibTree_296786_150.root
+/store/group/dpg_tracker_strip/comm_tracker/Strip/Calibration/calibrationtree/GR17/calibTree_296786_175.root
+/store/group/dpg_tracker_strip/comm_tracker/Strip/Calibration/calibrationtree/GR17/calibTree_296786_200.root
+/store/group/dpg_tracker_strip/comm_tracker/Strip/Calibration/calibrationtree/GR17/calibTree_296786_225.root
+/store/group/dpg_tracker_strip/comm_tracker/Strip/Calibration/calibrationtree/GR17/calibTree_296786_25.root
+/store/group/dpg_tracker_strip/comm_tracker/Strip/Calibration/calibrationtree/GR17/calibTree_296786_250.root
+/store/group/dpg_tracker_strip/comm_tracker/Strip/Calibration/calibrationtree/GR17/calibTree_296786_275.root
+/store/group/dpg_tracker_strip/comm_tracker/Strip/Calibration/calibrationtree/GR17/calibTree_296786_300.root
+/store/group/dpg_tracker_strip/comm_tracker/Strip/Calibration/calibrationtree/GR17/calibTree_296786_325.root
+/store/group/dpg_tracker_strip/comm_tracker/Strip/Calibration/calibrationtree/GR17/calibTree_296786_350.root
+/store/group/dpg_tracker_strip/comm_tracker/Strip/Calibration/calibrationtree/GR17/calibTree_296786_375.root
+/store/group/dpg_tracker_strip/comm_tracker/Strip/Calibration/calibrationtree/GR17/calibTree_296786_50.root
+/store/group/dpg_tracker_strip/comm_tracker/Strip/Calibration/calibrationtree/GR17/calibTree_296786_75.root

@@ -1,0 +1,4 @@
+/store/group/dpg_tracker_strip/comm_tracker/Strip/Calibration/calibrationtree/GR17/calibTree_297505_100.root
+/store/group/dpg_tracker_strip/comm_tracker/Strip/Calibration/calibrationtree/GR17/calibTree_297505_25.root
+/store/group/dpg_tracker_strip/comm_tracker/Strip/Calibration/calibrationtree/GR17/calibTree_297505_50.root
+/store/group/dpg_tracker_strip/comm_tracker/Strip/Calibration/calibrationtree/GR17/calibTree_297505_75.root
