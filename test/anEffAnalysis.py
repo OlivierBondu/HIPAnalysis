@@ -1,4 +1,9 @@
 import FWCore.ParameterSet.Config as cms
+from CalibTracker.HIPAnalysis.getFillScheme import getFillScheme
+
+RUN_NUMBER = 299061
+N_FILES = -1
+SPLITTRAIN = 6
 
 process = cms.Process("anEffAnalysis")
 
@@ -19,10 +24,9 @@ filelist = "/home/fynu/obondu/TRK/CMSSW_9_2_3_patch2/src/CalibTracker/HIPAnalysi
 
 with open(filelist) as f:
     for line in f:
-        if '#' in line:
+        if ('#' in line) or ('store' not in line):
             continue
         myFileList.append('root://eoscms.cern.ch//eos/cms' + line.strip('\n'));
-#        myFileList.append(line.strip('\n'));
 #print myFileList
 
 # TEST FILE
@@ -35,10 +39,15 @@ for i in xrange(0, len(myFileList) / 10 + 1):
 #print "len(myFileSubList)=", len(myFileSubList)
 
 # In this analyser, maxEvents actually represents the number of input files...
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1) ) 
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(N_FILES) ) 
+# Sanity check, just in case
+if (process.maxEvents.input < 0) or (process.maxEvents.input > len(myFileList)):
+    process.maxEvents.input = cms.untracked.int32(len(myFileList))
 
-bxs = ['0-3600']
-# FIXME: design a way to extract the bunch filling scheme from runregistry / cmsweb
+bxs_th1, edges, splittrains = getFillScheme(RUN_NUMBER, SPLITTRAIN)
+#bxs_th1 = splittrains[:10]
+bxs_th1 = splittrains
+bxs_th2 = ['0-3600']
 
 process.anEffAnalysis = cms.EDAnalyzer('anEffAnalysis',
     debug = cms.bool(False),
@@ -48,7 +57,7 @@ process.anEffAnalysis = cms.EDAnalyzer('anEffAnalysis',
 #    output = cms.string('histos_APVsettings_AagBunch.root'),
     inputTreeName = cms.string("anEff/traj"),
     output = cms.string('histos.root'),
-    runs = cms.untracked.vint32(299061), # note: override whatever is in the LuminosityBlockRange
+    runs = cms.untracked.vint32(RUN_NUMBER), # note: override whatever is in the LuminosityBlockRange
     # FIXME: LUMISECTION IS NOT IN THE TREE
     lumisections = cms.untracked.VLuminosityBlockRange(
         # First 100 LS
@@ -78,10 +87,12 @@ process.anEffAnalysis = cms.EDAnalyzer('anEffAnalysis',
 #        cms.LuminosityBlockRange("1:1800-1:1900"),
         ),
     layers = cms.untracked.vstring(["TOB_L1"]),
-    bxs = cms.untracked.vstring(bxs),
+    bxs_th1 = cms.untracked.vstring(bxs_th1),
+    bxs_th2 = cms.untracked.vstring(bxs_th2),
 # expression to filter out the input tree to speed things up
     filter_exp = cms.string(''),
     perform_fit = cms.bool(True),
+    verbose_fit = cms.bool(False),
 )
 filter_exp = ''
 # filter on runs
@@ -97,18 +108,18 @@ for ir, r in enumerate(process.anEffAnalysis.runs):
 # for il, l in enumerate(process.anEffAnalysis.lumisections):
 #    print il, l
 #     print l.start(), l.startSub(), l.end(), l.endSub()
-# filter on bxs
-for ib, b in enumerate(process.anEffAnalysis.bxs):
+# filter on bxs from th2
+for ib, b in enumerate(process.anEffAnalysis.bxs_th2):
     if ib == 0:
         if len(filter_exp) > 0:
             filter_exp += ' && '
         filter_exp += '('
-    elif ib <= len(process.anEffAnalysis.bxs) - 1:
+    elif ib <= len(process.anEffAnalysis.bxs_th2) - 1:
         filter_exp += ' || '
     tmp = b.split('-')
     tmp = map(int, tmp)
-    filter_exp += '(%i < bunchx && bunchx < %i)' % (tmp[0], tmp[1])
-    if ib == len(process.anEffAnalysis.bxs) - 1:
+    filter_exp += '(%i <= bunchx && bunchx <= %i)' % (tmp[0], tmp[1])
+    if ib == len(process.anEffAnalysis.bxs_th2) - 1:
         filter_exp += ')'
 # filter on layers: FIXME is not available in the anEff tree
 # put the final string into the argument to be passed to the analyzer
