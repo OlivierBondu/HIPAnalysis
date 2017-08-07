@@ -16,8 +16,10 @@ config.JobType.psetName = 'anEffAnalysis.py'
 config.section_('Data')
 config.Data.publication = False
 config.Data.splitting = 'EventBased'
-config.Data.unitsPerJob = 5
-config.Data.totalUnits = 31 # list_calibTrees_Fill-5750_Run-296173.txt
+# NB: unitsPerJob and totalUnits should be equal AND larger than the number of files for the longest run
+# Protection to not run forever is now built in the CMSSW config file anEffAnalysis.py
+config.Data.unitsPerJob = 50
+config.Data.totalUnits = 50
 config.Data.outLFNDirBase = '/store/user/obondu/'
 
 config.section_('Site')
