@@ -3,10 +3,11 @@ import argparse
 import os
 import subprocess
 from CRABAPI.RawCommand import crabCommand
+import json
 
 def get_options():
     parser = argparse.ArgumentParser(description='Return the list of calib trees for a given run')
-    parser.add_argument('--run', action='store', dest='run', default=[296173], nargs='+', type=int,
+    parser.add_argument('--run', action='store', dest='run', default=[296172], nargs='+', type=int,
                         help='Run number')
     parser.add_argument('--split', action='store', dest='split', default=[0], nargs='+', type=int,
                         help='Splitting bunch trains in SPLIT bunch crossings')
@@ -23,8 +24,10 @@ def calibTree_list_exist(run):
     if len(list_file) == 0:
         return 0
     list_file = list_file[0]
-    wc = subprocess.check_output(['wc', '-l', list_file])
-    return list_file, int(wc[0])
+    data = None
+    with open(list_file, 'r') as f:
+        data = json.load(f)
+    return list_file, len(data['files'])
 
 
 def prepare_CMSSW_config(run, split, list_file, n_files):
@@ -40,8 +43,8 @@ def prepare_CMSSW_config(run, split, list_file, n_files):
                     outf.write('N_FILES = %i\n' % n_files)
                 elif line.startswith('SPLITTRAIN'):
                     outf.write('SPLITTRAIN = %i\n' % split)
-                elif line.startswith('FILELIST'):
-                    outf.write('FILELIST = \"%s\"\n' % list_file)
+                elif line.startswith('INFOJSON'):
+                    outf.write('INFOJSON = \"%s\"\n' % list_file)
                 else:
                     outf.write(line)
     return new_config
@@ -71,7 +74,7 @@ def launch_CRAB(crab_config):
         res = crabCommand('submit', config = base_crab_config)
         print res
     else:
-        print 'you do not seem to be in the correct directory for submitting jobs'
+        print 'You do not seem to be in the correct directory for submitting jobs'
     return
 
 
