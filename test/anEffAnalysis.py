@@ -1,10 +1,14 @@
 import FWCore.ParameterSet.Config as cms
-from CalibTracker.HIPAnalysis.getFillScheme import getFillScheme
+import json
 
 RUN_NUMBER = 299061
-N_FILES = -1
-SPLITTRAIN = 6
-FILELIST = "/home/fynu/obondu/TRK/CMSSW_9_2_3_patch2/src/CalibTracker/HIPAnalysis/test/data/list_calibTrees_Fill-5950_Run-299061.txt"
+N_FILES = 1
+SPLITTRAIN = 0
+INFOJSON = "/home/fynu/obondu/TRK/CMSSW_9_2_3_patch2/src/CalibTracker/HIPAnalysis/test/data/list_calibTrees_Fill-5950_Run-299061.json"
+
+data = None
+with open(INFOJSON, 'r') as f:
+    data = json.load(f)
 
 process = cms.Process("anEffAnalysis")
 
@@ -17,13 +21,12 @@ process.GlobalTag.globaltag = "92X_dataRun2_Prompt_v4"
 process.source = cms.Source("EmptySource",)
 
 myFileList = []
-filelist = FILELIST
+filelist = data['files']
 
-with open(filelist) as f:
-    for line in f:
-        if ('#' in line) or ('store' not in line):
-            continue
-        myFileList.append('root://eoscms.cern.ch//eos/cms' + line.strip('\n'));
+for f in filelist:
+    if 'store' not in f:
+        continue
+    myFileList.append(('root://eoscms.cern.ch//eos/cms' + f).encode('ascii'));
 
 myFileSubList = []
 for i in xrange(0, len(myFileList) / 10 + 1):
@@ -35,10 +38,19 @@ process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(N_FILES) )
 if (process.maxEvents.input < 0) or (process.maxEvents.input > len(myFileList)):
     process.maxEvents.input = cms.untracked.int32(len(myFileList))
 
-bxs_th1, edges, splittrains = getFillScheme(RUN_NUMBER, SPLITTRAIN)
-#bxs_th1 = splittrains[:10]
-bxs_th1 = splittrains
+bxs = []
+for train in data['scheme']:
+    if SPLITTRAIN > 0 and len(train) > SPLITTRAIN:
+        for i in xrange(len(train) / SPLITTRAIN):
+            bxs.append('%i-%i' % (train[i * SPLITTRAIN], train[(i + 1) * SPLITTRAIN - 1]))
+        if len(train) % SPLITTRAIN != 0:
+            bxs.append('%i-%i' % (train[len(train) / SPLITTRAIN * SPLITTRAIN], train[-1]))
+    else:
+        bxs.append('%i-%i' % (train[0], train[-1]))
+
+bxs_th1 = bxs
 bxs_th2 = ['0-3600']
+print 'Will fill %i TH1 and %i TH2' % (len(bxs_th1), len(bxs_th2))
 
 process.anEffAnalysis = cms.EDAnalyzer('anEffAnalysis',
     debug = cms.bool(False),
