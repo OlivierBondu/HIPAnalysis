@@ -3,7 +3,8 @@ import argparse
 import socket
 import os
 import subprocess
-import CalibTracker.HIPAnalysis.getFillScheme as getFillScheme
+import CalibTracker.HIPAnalysis.utils as utils
+import json
 
 
 def get_options():
@@ -19,9 +20,9 @@ def get_options():
 
 
 def getCalibTreesList(username, run):
-    lhcFill = getFillScheme.get_fill_number(run)
+    lhcFill = utils.get_fill_number(run, username)
     CMSSW_BASE = os.environ['CMSSW_BASE']
-    outfilename = os.path.join(CMSSW_BASE, 'src/', 'CalibTracker/HIPAnalysis', 'test/data', 'list_calibTrees_Fill-%i_Run-%i.txt' % (lhcFill, run))
+    outfilename = os.path.join(CMSSW_BASE, 'src/', 'CalibTracker/HIPAnalysis', 'test/data', 'list_calibTrees_Fill-%i_Run-%i.json' % (lhcFill, run))
     if os.path.isfile(outfilename):
         print 'File already exist: %s' % outfilename
         return
@@ -29,28 +30,17 @@ def getCalibTreesList(username, run):
     path = '/store/group/dpg_tracker_strip/comm_tracker/Strip/Calibration/calibrationtree/GR17/'
     prefix = '/eos/cms'
     fullpath = prefix + path
-    print "Checking Kerberos ticket before attempting to run on lxplus"
-    p = subprocess.Popen(['klist'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    stdout, stderr = p.communicate()
-    ticket = stdout
-    ticket = [x for x in ticket.split('\n') if 'CERN.CH@CERN.CH' in x]
-    if len(ticket) > 0:
-        print "Current ticket: %s" % ticket[0]
-    else:
-        print "No ticket, running kinit, please enter your lxplus password"
-#        ticket = subprocess.check_output(['kinit', '%s@CERN.CH' % username])
-        p = subprocess.Popen(['kinit', '%s@CERN.CH' % username])
-        p.communicate()
+    utils.connect_to_lxplus(username)
     print "Listing the available calibTrees via eos ls on lxplus" 
     fulllist = subprocess.check_output(['ssh', '%s@lxplus.cern.ch' % username, 'ls', fullpath])
     fulllist = [x for x in fulllist.split('\n') if str(run) in x]
     if len(fulllist) == 0:
         print 'There is no calibTrees associated with run %i, exiting' % run
         return
-
-    with open(outfilename, 'w') as outfile:
-        for f in fulllist:
-            outfile.write(path + f + '\n')
+    outjson = {}
+    outjson['files'] = [path + f for f in fulllist]
+    with open(outfilename, 'w+') as f:
+        json.dump(outjson, f)
     print 'List written to file %s' % outfilename
     return
 
