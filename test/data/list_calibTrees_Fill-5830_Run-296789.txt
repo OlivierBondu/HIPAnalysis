@@ -1,1 +1,0 @@
-/store/group/dpg_tracker_strip/comm_tracker/Strip/Calibration/calibrationtree/GR17/calibTree_296789.root
