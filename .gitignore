@@ -25,5 +25,3 @@ test/oldtasks/
 *.png
 *.pdf
 
-# bunch filling schemes
-25ns_*b_*_*_*_*bpi*inj*.json
