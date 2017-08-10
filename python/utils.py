@@ -2,6 +2,30 @@
 from datetime import datetime
 import subprocess
 import ast
+import os
+
+
+def get_outfile(run, lhcfill):
+    CMSSW_BASE = os.environ['CMSSW_BASE']
+    outfilename = None
+    outpath = os.path.join(CMSSW_BASE, 'src/', 'CalibTracker/HIPAnalysis', 'test/data')
+    noFile = False
+    if lhcfill:
+        outfilename = os.path.join(outpath, 'list_calibTrees_Fill-%i_Run-%i.json' % (lhcfill, run))
+    else:
+        outfilename = [os.path.join(outpath, f) for f in os.listdir(outpath) if ('list_calibTrees_Fill' in f and 'Run-%i.json' % run in f)]
+        if len(outfilename) == 0:
+            noFile = True
+        else:
+            outfilename = outfilename[0]
+    if not(os.path.isfile(outfilename)):
+        noFile = True
+
+    if noFile:
+        print 'File does not exist: %s' % outfilename
+        print 'Please run getCalibTreesList.py first'
+        return None
+    return outfilename
 
 
 def connect_to_lxplus(username):

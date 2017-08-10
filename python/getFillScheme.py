@@ -106,24 +106,15 @@ def prepareSchemeForRealUse(outfile, data, scheme, bx_scheme_name):
     return 
 
 
-def get_outfile(run, lhcfill):
-    CMSSW_BASE = os.environ['CMSSW_BASE']
-    outfilename = os.path.join(CMSSW_BASE, 'src/', 'CalibTracker/HIPAnalysis', 'test/data', 'list_calibTrees_Fill-%i_Run-%i.json' % (lhcfill, run))
-    if not(os.path.isfile(outfilename)):
-        print 'File does not exist: %s' % outfilename
-        print 'Please run getCalibTreesList.py first'
-        return None, None
-    data = None
-    with open(outfilename, 'r') as f:
-        data = json.load(f)
-    return outfilename, data
-
 if __name__ == '__main__':
     options = get_options()
     username = options.username
     for run in options.run:
         lhcfill = utils.get_fill_number(run, username)
-        outfile, data = get_outfile(run, lhcfill)
+        outfile = utils.get_outfile(run, lhcfill)
+        data = None
+        with open(outfilename, 'r') as f:
+            data = json.load(f)
         if outfile:
             scheme, bx_scheme_name = getFillScheme(lhcfill)
             prepareSchemeForRealUse(outfile, data, scheme, bx_scheme_name)
