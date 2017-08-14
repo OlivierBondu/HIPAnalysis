@@ -44,6 +44,17 @@
 #include "TChain.h"
 #include "TH1F.h"
 #include "TH2F.h"
+#include "TF1.h"
+#include "TGraphAsymmErrors.h"
+
+// RooFit includes
+#include "RooPlot.h"
+#include "RooRealVar.h"
+#include "RooDataHist.h"
+#include "RooAddPdf.h"
+#include "RooGaussian.h"
+#include "RooLandau.h"
+#include "RooFFTConvPdf.h"
 
 // C++ includes
 #include <iostream>
@@ -64,6 +75,9 @@ namespace anEffAnalysisTool {
 // class declaration
 //
 
+TF1 * f2 = NULL;
+TF1 * f3 = NULL;
+
 class anEffAnalysis : public edm::EDAnalyzer {
     public:
         explicit anEffAnalysis(const edm::ParameterSet&);
@@ -76,7 +90,11 @@ class anEffAnalysis : public edm::EDAnalyzer {
         virtual void beginJob() override;
         virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
         virtual void endJob() override;
+        std::string histname(int run, std::string layer, std::string bx);
         unsigned int checkLayer( unsigned int iidd, const TrackerTopology* tTopo);
+        static Double_t function_sum(Double_t *x, Double_t *par);
+        void fitAll();
+        std::pair<unsigned int, unsigned int> getBx(std::string bx);
 
       //virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
       //virtual void endRun(edm::Run const&, edm::EventSetup const&) override;
@@ -94,15 +112,17 @@ class anEffAnalysis : public edm::EDAnalyzer {
         std::vector<int> m_Vruns;
         std::vector<edm::LuminosityBlockRange> m_Vlumisections;
         std::vector<std::string> m_Vlayers;
-        std::vector<std::string> m_Vbxs;
+        std::vector<std::string> m_Vbxs_th1;
+        std::vector<std::string> m_Vbxs_th2;
         std::string m_filter_exp;
+        bool m_perform_fit;
+        bool m_verbose_fit;
         // Internal things
         std::unordered_set<int> m_Sruns;
         std::unordered_set<std::string> m_Slayers;
-        std::unordered_set<std::string> m_Sbxs;
+        std::unordered_set<std::string> m_Sbxs_th1;
+        std::unordered_set<std::string> m_Sbxs_th2;
         // Utilities
-        TkDetMap* tkDetMap_;
-        TkLayerMap* tkLayerMap_;
         typedef std::chrono::system_clock clock;
         typedef std::chrono::milliseconds ms;
         typedef std::chrono::seconds seconds;
@@ -110,6 +130,8 @@ class anEffAnalysis : public edm::EDAnalyzer {
         // Histograms
         std::map<std::string, TH1F*> map_h_ClusterStoN;
         std::map<std::string, TH2F*> map_h_ClusterStoN_vs_bx;
+        std::map<std::string, TGraphAsymmErrors*> map_h_ClusterStoN_vs_bx_fit_lxg;
+        std::map<std::string, TGraphAsymmErrors*> map_h_ClusterStoN_vs_bx_fit_lpg;
 };
 
 //
@@ -132,14 +154,18 @@ m_output_filename(iConfig.getParameter<std::string>("output")),
 m_Vruns(iConfig.getUntrackedParameter<std::vector<int>>("runs")),
 m_Vlumisections(iConfig.getUntrackedParameter<std::vector<edm::LuminosityBlockRange>>("lumisections")),
 m_Vlayers(iConfig.getUntrackedParameter<std::vector<std::string>>("layers")),
-m_Vbxs(iConfig.getUntrackedParameter<std::vector<std::string>>("bxs")),
-m_filter_exp(iConfig.getParameter<std::string>("filter_exp"))
+m_Vbxs_th1(iConfig.getUntrackedParameter<std::vector<std::string>>("bxs_th1")),
+m_Vbxs_th2(iConfig.getUntrackedParameter<std::vector<std::string>>("bxs_th2")),
+m_filter_exp(iConfig.getParameter<std::string>("filter_exp")),
+m_perform_fit(iConfig.getParameter<bool>("perform_fit")),
+m_verbose_fit(iConfig.getParameter<bool>("verbose_fit"))
 {
    //now do what ever initialization is needed
     m_output.reset(TFile::Open(m_output_filename.c_str(), "recreate"));
     std::copy(m_Vruns.begin(), m_Vruns.end(), std::inserter(m_Sruns, m_Sruns.end()));
     std::copy(m_Vlayers.begin(), m_Vlayers.end(), std::inserter(m_Slayers, m_Slayers.end()));
-    std::copy(m_Vbxs.begin(), m_Vbxs.end(), std::inserter(m_Sbxs, m_Sbxs.end()));
+    std::copy(m_Vbxs_th1.begin(), m_Vbxs_th1.end(), std::inserter(m_Sbxs_th1, m_Sbxs_th1.end()));
+    std::copy(m_Vbxs_th2.begin(), m_Vbxs_th2.end(), std::inserter(m_Sbxs_th2, m_Sbxs_th2.end()));
 }
 
 
@@ -150,6 +176,10 @@ anEffAnalysis::~anEffAnalysis()
     for (auto it = map_h_ClusterStoN.begin() ; it != map_h_ClusterStoN.end() ; it++)
         delete (*it).second;
     for (auto it = map_h_ClusterStoN_vs_bx.begin() ; it != map_h_ClusterStoN_vs_bx.end() ; it++)
+        delete (*it).second;
+    for (auto it = map_h_ClusterStoN_vs_bx_fit_lxg.begin() ; it != map_h_ClusterStoN_vs_bx_fit_lxg.end() ; it++)
+        delete (*it).second;
+    for (auto it = map_h_ClusterStoN_vs_bx_fit_lpg.begin() ; it != map_h_ClusterStoN_vs_bx_fit_lpg.end() ; it++)
         delete (*it).second;
     m_output->Close();
 }
@@ -180,6 +210,16 @@ unsigned int anEffAnalysis::checkLayer( unsigned int iidd, const TrackerTopology
     return 0;
 }
 
+std::string anEffAnalysis::histname(int run, std::string layer, std::string bx) {
+    return std::to_string(run) + '_' + (layer) + "_bxs_" + (bx);
+}
+
+std::pair<unsigned int, unsigned int> anEffAnalysis::getBx(std::string bx) {
+    std::vector<std::string> tmp = anEffAnalysisTool::split(bx, '-');
+    unsigned int bxlow = std::stoi(tmp[0]);
+    unsigned int bxhigh = std::stoi(tmp[1]);
+    return std::pair<unsigned int, unsigned int>(bxlow, bxhigh);
+}
 
 // ------------ method called for each event  ------------
 void
@@ -249,22 +289,39 @@ anEffAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         {
             for (auto it_layers = m_Slayers.begin() ; it_layers != m_Slayers.end() ; it_layers++)
             {
-                for (auto it_bxs = m_Sbxs.begin() ; it_bxs != m_Sbxs.end() ; it_bxs++)
+                std::cout << "## TH1 histogram filling ##" << std::endl;
+                for (auto it_bxs = m_Sbxs_th1.begin() ; it_bxs != m_Sbxs_th1.end() ; it_bxs++)
                 {
                     TCanvas *c1 = new TCanvas();
-                    std::string h_name = 
-                        std::to_string(*it_runs) + '_'
-                        + (*it_layers)
-                        + "_bxs_" + (*it_bxs);
-                    intree->Draw(("ClusterStoN>>+h_ClusterStoN_" + h_name + "(2000, 0, 2000)").c_str(), m_filter_exp.c_str(), "");
+                    std::string h_name = histname(*it_runs, *it_layers, *it_bxs); 
+                    unsigned int bxlow = getBx(*it_bxs).first;
+                    unsigned int bxhig = getBx(*it_bxs).second;
+                    std::cout << "Filling histograms for " << h_name << std::endl;
+                    intree->Draw(("ClusterStoN>>h_ClusterStoN_" + h_name + "(2000, 0, 2000)").c_str(), (m_filter_exp + "&& (" + std::to_string(bxlow) + " <= bunchx && bunchx <= " + std::to_string(bxhig) + ")").c_str(), "");
                     TH1F *h = (TH1F*)c1->GetPrimitive(("h_ClusterStoN_" + h_name).c_str());
-                    map_h_ClusterStoN[h_name] = h;
-
-                    intree->Draw("ClusterStoN:bunchx>>h3(3600, 0, 3600, 2000, 0, 2000)", m_filter_exp.c_str(), "colz");
-                    map_h_ClusterStoN_vs_bx[h_name] = (TH2F*)(c1->GetPrimitive("h3"));
-                }
-            }
-        }
+                    map_h_ClusterStoN[h_name]->Add(h);
+                    delete h;
+                    delete c1;
+                } // end of loop over th1 bx list
+                std::cout << "## TH2 histogram filling ##" << std::endl;
+                for (auto it_bxs = m_Sbxs_th2.begin() ; it_bxs != m_Sbxs_th2.end() ; it_bxs++)
+                {
+                    TCanvas *c1 = new TCanvas();
+                    std::string h_name = histname(*it_runs, *it_layers, *it_bxs); 
+                    unsigned int bxlow = getBx(*it_bxs).first;
+                    unsigned int bxhig = getBx(*it_bxs).second;
+                    std::cout << "Filling histograms for " << h_name << std::endl;
+                    intree->Draw("ClusterStoN:bunchx>>h3(3600, 0, 3600, 2000, 0, 2000)", (m_filter_exp + "&& (" + std::to_string(bxlow) + " <= bunchx && bunchx <= " + std::to_string(bxhig) + ")").c_str(), "colz");
+                    map_h_ClusterStoN_vs_bx[h_name]->Add((TH2F*)(c1->GetPrimitive("h3")));
+                    // necessary because of the weird way the graph is translated into a TH2F automatically by root
+                    map_h_ClusterStoN_vs_bx[h_name]->SetName(("h_ClusterStoN_vs_bx_" + h_name).c_str());
+                    map_h_ClusterStoN_vs_bx[h_name]->SetTitle(("h_ClusterStoN_vs_bx_" + h_name).c_str());
+                    delete c1;
+                } // end of loop over th2 bx list
+            } // end of loop over layers
+        } // end of loop over runs
+        infile = 0;
+        intree = 0;
     } // end of loop over input files
 } // end of anEffAnalysis::analyze
 
@@ -279,45 +336,199 @@ anEffAnalysis::beginJob()
     {
         for (auto it_layers = m_Slayers.begin() ; it_layers != m_Slayers.end() ; it_layers++)
         {
-            for (auto it_bxs = m_Sbxs.begin() ; it_bxs != m_Sbxs.end() ; it_bxs++)
+            std::cout << "## Creating TH1 histograms ##" << std::endl;
+            for (auto it_bxs = m_Sbxs_th1.begin() ; it_bxs != m_Sbxs_th1.end() ; it_bxs++)
             {
-                std::string h_name = 
-                    std::to_string(*it_runs) + '_'
-                    + (*it_layers)
-                    + "_bxs_" + (*it_bxs);
+                std::string h_name = histname(*it_runs, *it_layers, *it_bxs);
                 std::cout << "Will create histograms corresponding to " << h_name << std::endl;
                 map_h_ClusterStoN[h_name] = new TH1F(("h_ClusterStoN_" + h_name).c_str(), ("h_ClusterStoN_" + h_name).c_str(), 2000, 0, 2000);
+            } // end of loop over th1 bx intervals
+            std::cout << "## Creating TH2 histograms ##" << std::endl;
+            for (auto it_bxs = m_Sbxs_th2.begin() ; it_bxs != m_Sbxs_th2.end() ; it_bxs++)
+            {
+                std::string h_name = histname(*it_runs, *it_layers, *it_bxs);
+                std::cout << "Will create histograms corresponding to " << h_name << std::endl;
                 map_h_ClusterStoN_vs_bx[h_name] = new TH2F(("h_ClusterStoN_vs_bx_" + h_name).c_str(), ("h_ClusterStoN_vs_bx_" + h_name).c_str(), 3600, 0, 3600, 2000, 0, 2000);
-            } // end of loop over bx intervals
+                map_h_ClusterStoN_vs_bx_fit_lxg[h_name] = new TGraphAsymmErrors();
+                map_h_ClusterStoN_vs_bx_fit_lxg[h_name]->SetName(("h_ClusterStoN_vs_bx_fit_lxg_" + h_name).c_str());
+                map_h_ClusterStoN_vs_bx_fit_lxg[h_name]->SetTitle(("h_ClusterStoN_vs_bx_fit_lxg_" + h_name).c_str());
+                map_h_ClusterStoN_vs_bx_fit_lpg[h_name] = new TGraphAsymmErrors();
+                map_h_ClusterStoN_vs_bx_fit_lpg[h_name]->SetName(("h_ClusterStoN_vs_bx_fit_lpg_" + h_name).c_str());
+                map_h_ClusterStoN_vs_bx_fit_lpg[h_name]->SetTitle(("h_ClusterStoN_vs_bx_fit_lpg_" + h_name).c_str());
+            } // end of loop over th2 bx intervals
         } // end of loop over layers
     } // end of loop over runs
 
 }
 
+Double_t anEffAnalysis::function_sum(Double_t *x, Double_t *par) {
+    const Double_t xx =x[0];
+    return (1 - par[0]) * f2->Eval(xx) / par[1] + (par[0]) * f3->Eval(xx) / par[2];
+    //return (par[0]) * f2->Eval(xx) + (1 - par[0]) * f3->Eval(xx);
+}
+
 void anEffAnalysis::fitAll()
 {
-    return
+    std::cout << "## Fitting TH1 histograms ##" << std::endl;
+    if (!m_verbose_fit) {
+        RooMsgService::instance().setGlobalKillBelow(RooFit::FATAL);
+    }
+    TCanvas *c1 = new TCanvas();
+    for (auto it_runs = m_Sruns.begin() ; it_runs != m_Sruns.end() ; it_runs++)
+    {
+        for (auto it_layers = m_Slayers.begin() ; it_layers != m_Slayers.end() ; it_layers++)
+        {
+            for (auto it_bxs = m_Sbxs_th1.begin() ; it_bxs != m_Sbxs_th1.end() ; it_bxs++)
+            {
+                // Define common things for the different fits
+                std::string h_name = histname(*it_runs, *it_layers, *it_bxs);
+                c1->Clear();
+                Double_t xmin = 0;
+                Double_t xmax = 100;
+                RooRealVar StoN("StoN", "S / N", xmin, xmax);
+                RooPlot* frame = StoN.frame();
+                RooDataHist datahist("datahist", "datahist", StoN, RooFit::Import(*map_h_ClusterStoN[h_name]));
+                datahist.plotOn(frame);
+
+                // Try Landau convolved with a gaussian
+                RooRealVar meanG("meanG", "meanG", 0);
+                RooRealVar sigmaG("sigmaG", "sigmaG", 1, 0.1, 20);
+                RooRealVar meanL("meanL", "meanL", 30, 10, 50);
+                RooRealVar sigmaL("sigmaL", "sigmaL", 0.1, 100);
+                RooGaussian gaussian("gaussian", "gaussian", StoN, meanG, sigmaG);
+                RooLandau landau("landau", "landau", StoN, meanL, sigmaL);
+                // Set #bins to be used for FFT sampling to 10000
+                StoN.setBins(10000, "cache");
+                RooFFTConvPdf model("model", "landau (X) gauss", StoN, landau, gaussian) ;
+                if (m_verbose_fit) {
+                    model.fitTo(datahist);
+                } else {
+                    model.fitTo(datahist, RooFit::PrintLevel(-1));
+                }
+                model.plotOn(frame, RooFit::LineColor(kBlue));
+                // Get the maxima
+                // lxg == landau (X) gauss
+                TF1 *lxg = model.asTF(RooArgList(StoN));
+                Double_t xmax_lxg = lxg->GetMaximumX();
+                Double_t ymax_lxg = lxg->GetMaximum();
+                Double_t x1_lxg = lxg->GetX(ymax_lxg / 2., xmin, xmax_lxg);
+                Double_t x2_lxg = lxg->GetX(ymax_lxg / 2., xmax_lxg, xmax);
+                if (HIPDEBUG) {
+                    std::cout << "From TF1, maximum at (x, y) = (" << xmax_lxg << " , " << ymax_lxg << ")" << std::endl;
+                    std::cout << "From TF1, FWHM at (x1, x2) = (" << x1_lxg << " , " << x2_lxg << ")" << std::endl;
+                }
+
+                // Try landau + a gaussian
+                RooRealVar meanG2("meanG2", "meanG2", 30, 10, 50);
+                RooRealVar sigmaG2("sigmaG2", "sigmaG2", 1, 1, 50);
+                RooRealVar meanL2("meanL2", "meanL2", 30, 10, 50);
+                RooRealVar sigmaL2("sigmaL2", "sigmaL2", 0.1, 100);
+                RooGaussian gaussian2("gaussian2", "gaussian2", StoN, meanG2, sigmaG2);
+                RooLandau landau2("landau2", "landau2", StoN, meanL2, sigmaL2);
+                RooRealVar x("x", "x", 0.1, 0, 0.4);
+                RooAddPdf model2("model2", "model2", gaussian2, landau2, x);
+                if (m_verbose_fit) {
+                    model2.fitTo(datahist);
+                } else {
+                    model2.fitTo(datahist, RooFit::PrintLevel(-1));
+                }
+                model2.plotOn(frame, RooFit::LineColor(kRed));
+                // Get the maxima
+                // lpg == landau + gauss
+                f2 = landau2.asTF(RooArgList(StoN));
+                f3 = gaussian2.asTF(RooArgList(StoN));
+                TF1 *lpg = new TF1("Sum", function_sum, 0, 100, 3);
+                lpg->SetParameter(0, x.getVal());
+                lpg->SetParameter(1, f2->Integral(0, 100));
+                lpg->SetParameter(2, f3->Integral(0, 100));
+                Double_t xmax_lpg = lpg->GetMaximumX();
+                Double_t ymax_lpg = lpg->GetMaximum();
+                Double_t x1_lpg = lpg->GetX(ymax_lpg / 2., xmin, xmax_lpg);
+                Double_t x2_lpg = lpg->GetX(ymax_lpg / 2., xmax_lpg, xmax);
+                if (HIPDEBUG) {
+                    std::cout << "From TF1, maximum at (x, y) = (" << xmax_lpg << " , " << ymax_lpg << ")" << std::endl;
+                    std::cout << "From TF1, FWHM at (x1, x2) = (" << x1_lpg << " , " << x2_lpg << ")" << std::endl;
+                }
+
+                // Redraw data on top and print / store everything
+                datahist.plotOn(frame);
+                unsigned int bxlow = getBx(*it_bxs).first;
+                unsigned int bxhig = getBx(*it_bxs).second;
+                for (auto it_bxs_th2 = m_Sbxs_th2.begin() ; it_bxs_th2 != m_Sbxs_th2.end() ; it_bxs_th2++)
+                {
+                    unsigned int bxlow_th2 = getBx(*it_bxs_th2).first;
+                    unsigned int bxhig_th2 = getBx(*it_bxs_th2).second;
+                    if ((bxlow < bxlow_th2) || (bxhig > bxhig_th2))
+                        continue;
+                    std::string h_name_th2 = histname(*it_runs, *it_layers, *it_bxs_th2);
+                    float bxmean = (bxhig - bxlow) / 2. + bxlow;
+                    unsigned int n = map_h_ClusterStoN_vs_bx_fit_lxg[h_name_th2]->GetN();
+                    map_h_ClusterStoN_vs_bx_fit_lxg[h_name_th2]->SetPoint(n, bxmean, xmax_lxg);
+                    map_h_ClusterStoN_vs_bx_fit_lxg[h_name_th2]->SetPointError(n, bxmean - bxlow, bxhig - bxmean, xmax_lxg - x1_lxg, x2_lxg - xmax_lxg);
+                    map_h_ClusterStoN_vs_bx_fit_lpg[h_name_th2]->SetPoint(n, bxmean, xmax_lpg);
+                    map_h_ClusterStoN_vs_bx_fit_lpg[h_name_th2]->SetPointError(n, bxmean - bxlow, bxhig - bxmean, xmax_lpg - x1_lpg, x2_lpg - xmax_lpg);
+                    frame->SetName(("frame_" + h_name).c_str());
+                    frame->SetTitle(("frame_" + h_name).c_str());
+                    frame->Draw();
+                    m_output->cd();
+                    frame->Write();
+                    if (HIPDEBUG) {
+                        c1->Print("anEff_fit_debug.pdf");
+                    }
+//                    c1->SetName(("canvas_" + h_name).c_str());
+//                    c1->SetTitle(("canvas_" + h_name).c_str());
+//                    c1->Write();
+                } // end of loop over th2 bx intervals
+                delete lxg;
+                delete lpg;
+            } // end of loop over th1 bx intervals
+        } // end of loop over layers
+    } // end of loop over runs
+    delete c1;
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
 void 
 anEffAnalysis::endJob() 
 {
-    m_output->cd();
-    for (auto it = map_h_ClusterStoN.begin() ; it != map_h_ClusterStoN.end() ; it++) {
-        std::cout << "#entries to file= " << it->second->GetEntries() << std::endl;
-        it->second->Write();
-    }
-    for (auto it = map_h_ClusterStoN_vs_bx.begin() ; it != map_h_ClusterStoN_vs_bx.end() ; it++) {
-        std::cout << "#entries to file= " << it->second->GetEntries() << std::endl;
-        it->second->Write();
-    }
-    m_output->Write();
-    if (m_perform_fit)
+    auto histo_time = clock::now();
+    std::cout << std::endl << "Histos done in " << std::chrono::duration_cast<ms>(histo_time - m_start_time).count() / 1000. << "s" << std::endl;
+    if (m_perform_fit) {
         fitAll();
+        auto fit_time = clock::now();
+        std::cout << std::endl << "Fits done in " << std::chrono::duration_cast<ms>(fit_time - histo_time).count() / 1000. << "s" << std::endl;
+    }
 
     auto end_time = clock::now();
     std::cout << std::endl << "Job done in " << std::chrono::duration_cast<ms>(end_time - m_start_time).count() / 1000. << "s" << std::endl;
+    m_output->cd();
+    for (auto it = map_h_ClusterStoN.begin() ; it != map_h_ClusterStoN.end() ; it++) {
+        std::cout << "#entries in " << it->second->GetName() << "= " << it->second->GetEntries() << std::endl;
+        it->second->Write();
+    }
+    for (auto it = map_h_ClusterStoN_vs_bx.begin() ; it != map_h_ClusterStoN_vs_bx.end() ; it++) {
+        std::cout << "#entries in " << it->second->GetName() << "= " << it->second->GetEntries() << std::endl;
+        it->second->Write();
+    }
+    for (auto it = map_h_ClusterStoN_vs_bx_fit_lxg.begin() ; it != map_h_ClusterStoN_vs_bx_fit_lxg.end() ; it++) {
+        std::cout << "#entries in " << it->second->GetName() << "= " << it->second->GetN() << std::endl;
+        if (HIPDEBUG) {
+            for (int i = 0 ; i < it->second->GetN() ; i++) {
+                std::cout  
+                    << "\t" << it->second->GetErrorXlow(i)
+                    << "\t" << it->second->GetErrorXhigh(i)
+                    << "\t" << it->second->GetErrorYlow(i)
+                    << "\t" << it->second->GetErrorYhigh(i)
+                    << std::endl;
+            }
+        }
+        it->second->Write();
+    }
+    for (auto it = map_h_ClusterStoN_vs_bx_fit_lpg.begin() ; it != map_h_ClusterStoN_vs_bx_fit_lpg.end() ; it++) {
+        std::cout << "#entries in " << it->second->GetName() << "= " << it->second->GetN() << std::endl;
+        it->second->Write();
+    }
+    m_output->Write();
 }
 
 // ------------ method called when starting to processes a run  ------------

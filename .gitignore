@@ -3,6 +3,7 @@
 
 # CMSSW stuff
 HIPAnalysis_[0-9]*.py
+*anEffAnalysis_run_[0-9]*_split_[0-9]*
 
 # Python stuff
 *.pyc
@@ -23,3 +24,4 @@ test/oldtasks/
 # Plots
 *.png
 *.pdf
+
