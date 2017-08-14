@@ -30,6 +30,7 @@ git clone -o upstream git@github.com:OlivierBondu/HIPAnalysis.git CalibTracker/H
 cd ${CMSSW_BASE}/src/
 scram b -j 4
 cd CalibTracker/HIPAnalysis
+pip install --user progressbar
 ```
 
 ## Code orientation

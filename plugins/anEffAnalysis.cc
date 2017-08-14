@@ -123,8 +123,6 @@ class anEffAnalysis : public edm::EDAnalyzer {
         std::unordered_set<std::string> m_Sbxs_th1;
         std::unordered_set<std::string> m_Sbxs_th2;
         // Utilities
-        TkDetMap* tkDetMap_;
-        TkLayerMap* tkLayerMap_;
         typedef std::chrono::system_clock clock;
         typedef std::chrono::milliseconds ms;
         typedef std::chrono::seconds seconds;
@@ -302,6 +300,8 @@ anEffAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
                     intree->Draw(("ClusterStoN>>h_ClusterStoN_" + h_name + "(2000, 0, 2000)").c_str(), (m_filter_exp + "&& (" + std::to_string(bxlow) + " <= bunchx && bunchx <= " + std::to_string(bxhig) + ")").c_str(), "");
                     TH1F *h = (TH1F*)c1->GetPrimitive(("h_ClusterStoN_" + h_name).c_str());
                     map_h_ClusterStoN[h_name]->Add(h);
+                    delete h;
+                    delete c1;
                 } // end of loop over th1 bx list
                 std::cout << "## TH2 histogram filling ##" << std::endl;
                 for (auto it_bxs = m_Sbxs_th2.begin() ; it_bxs != m_Sbxs_th2.end() ; it_bxs++)
@@ -316,9 +316,12 @@ anEffAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
                     // necessary because of the weird way the graph is translated into a TH2F automatically by root
                     map_h_ClusterStoN_vs_bx[h_name]->SetName(("h_ClusterStoN_vs_bx_" + h_name).c_str());
                     map_h_ClusterStoN_vs_bx[h_name]->SetTitle(("h_ClusterStoN_vs_bx_" + h_name).c_str());
+                    delete c1;
                 } // end of loop over th2 bx list
             } // end of loop over layers
         } // end of loop over runs
+        infile = 0;
+        intree = 0;
     } // end of loop over input files
 } // end of anEffAnalysis::analyze
 
@@ -464,18 +467,24 @@ void anEffAnalysis::fitAll()
                     map_h_ClusterStoN_vs_bx_fit_lxg[h_name_th2]->SetPointError(n, bxmean - bxlow, bxhig - bxmean, xmax_lxg - x1_lxg, x2_lxg - xmax_lxg);
                     map_h_ClusterStoN_vs_bx_fit_lpg[h_name_th2]->SetPoint(n, bxmean, xmax_lpg);
                     map_h_ClusterStoN_vs_bx_fit_lpg[h_name_th2]->SetPointError(n, bxmean - bxlow, bxhig - bxmean, xmax_lpg - x1_lpg, x2_lpg - xmax_lpg);
+                    frame->SetName(("frame_" + h_name).c_str());
+                    frame->SetTitle(("frame_" + h_name).c_str());
                     frame->Draw();
+                    m_output->cd();
+                    frame->Write();
                     if (HIPDEBUG) {
                         c1->Print("anEff_fit_debug.pdf");
                     }
-                    m_output->cd();
-                    c1->SetName(h_name.c_str());
-                    c1->SetTitle(h_name.c_str());
-                    c1->Write();
+//                    c1->SetName(("canvas_" + h_name).c_str());
+//                    c1->SetTitle(("canvas_" + h_name).c_str());
+//                    c1->Write();
                 } // end of loop over th2 bx intervals
+                delete lxg;
+                delete lpg;
             } // end of loop over th1 bx intervals
         } // end of loop over layers
     } // end of loop over runs
+    delete c1;
 }
 
 // ------------ method called once each job just after ending the event loop  ------------

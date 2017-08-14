@@ -8,14 +8,41 @@ import collections
 from array import array
 import th2_rebin_numpy
 import CalibTracker.HIPAnalysis.utils as utils
+import copy
 # File location
 # CRAB output dir: /storage/data/cms/store/user/obondu/CRAB_PrivateMC/crab_CalibTreesLayerAnalysis/170622_161745/0000/
-histdir = "/home/fynu/obondu/TRK/CMSSW_9_2_3_patch2/src/CalibTracker/HIPAnalysis/test"
-histfile = "histos.root"
-run = 299061
+#histdir = "/home/fynu/obondu/TRK/CMSSW_9_2_3_patch2/src/CalibTracker/HIPAnalysis/test"
+#histfile = "histos.root"
+
+histdir = '/storage/data/cms/store/user/obondu/CRAB_PrivateMC/'
+# 297100
+#histfile = 'crab_anEffAnalysis_run_297100_split_0/170810_125553/0000/histos_1.root'
+#histfile = 'crab_anEffAnalysis_run_297100_split_24/170810_125602/0000/histos_1.root'
+histfile = 'crab_anEffAnalysis_run_297100_split_12/170810_125558/0000/histos_1.root'
+#histfile = 'crab_anEffAnalysis_run_297100_split_48/170810_125608/0000/histos_1.root'
+# 299061
+#histfile = 'crab_anEffAnalysis_run_299061_split_0/170810_125709/0000/histos_1.root'
+#histfile = 'crab_anEffAnalysis_run_299061_split_12/170810_125713/0000/histos_1.root'
+#histfile = 'crab_anEffAnalysis_run_299061_split_24/170810_125718/0000/histos_1.root'
+#histfile = 'crab_anEffAnalysis_run_299061_split_48/170810_125722/0000/histos_1.root'
+
+#histfile = 'crab_anEffAnalysis_run_297722_split_48/170810_125705/0000/histos_1.root'
+#histfile = 'crab_anEffAnalysis_run_296173_split_0/170810_125517/0000/histos_1.root'
+#histfile = 'crab_anEffAnalysis_run_296786_split_48/170810_125548/0000/histos_1.root'
+#histfile = 'crab_anEffAnalysis_run_296786_split_24/170810_125543/0000/histos_1.root'
+#histfile = 'crab_anEffAnalysis_run_297503_split_0/170810_125632/0000/histos_1.root'
+#histfile = 'crab_anEffAnalysis_run_296786_split_0/170810_125535/0000/histos_1.root'
+#histfile = 'crab_anEffAnalysis_run_297722_split_0/170810_125651/0000/histos_1.root'
+#histfile = 'crab_anEffAnalysis_run_297722_split_12/170810_125655/0000/histos_1.root'
+#histfile = 'crab_anEffAnalysis_run_297503_split_12/170810_125637/0000/histos_1.root'
+#histfile = 'crab_anEffAnalysis_run_297722_split_24/170810_125700/0000/histos_1.root'
+#histfile = 'crab_anEffAnalysis_run_296786_split_12/170810_125539/0000/histos_1.root'
+
+run = 297100
+SPLITTRAIN = 12
+plotdir = "170811_SoN_%i_%i" % (run, SPLITTRAIN)
 DEBUG = True
 
-plotdir = "170809_SoN_%i" % run
 # ROOT setup
 import ROOT
 from ROOT import TFile, TCanvas, TLatex, TLegend
@@ -51,9 +78,36 @@ data = None
 with open(jsonf, 'r') as f:
     data = json.load(f)
 
-edges = data['edges']
+edges = data['edges'] + [3600]
+edges = map(float, edges)
 if DEBUG:
     print 'DEBUG:\tedges= ', edges
+
+# construct train ranges to get the proper histograms
+bxs = []
+splitedges = [0]
+for train in data['scheme']:
+    if SPLITTRAIN > 0 and len(train) > SPLITTRAIN:
+        for i in xrange(len(train) / SPLITTRAIN):
+            bxs.append('%i-%i' % (train[i * SPLITTRAIN], train[(i + 1) * SPLITTRAIN - 1]))
+            splitedges += [train[i * SPLITTRAIN], train[(i + 1) * SPLITTRAIN - 1]]
+        if len(train) % SPLITTRAIN != 0:
+            bxs.append('%i-%i' % (train[len(train) / SPLITTRAIN * SPLITTRAIN], train[-1]))
+            splitedges += [train[len(train) / SPLITTRAIN * SPLITTRAIN], train[-1]]
+    else:
+        bxs.append('%i-%i' % (train[0], train[-1]))
+        splitedges += [train[0], train[-1]]
+# construct edge ranges for proper rebinning
+splitedges = [0]
+for b in bxs:
+    tmp = map(int, b.split('-'))
+    tmp[1] += 1
+    splitedges += tmp
+splitedges += [3600]
+splitedges = sorted(list(set(splitedges)))
+splitedges = map(float, splitedges)
+if DEBUG:
+    print 'DEBUG:\tsplitedges=', splitedges
 
 print 'layers= ', layers
 print 'lumisections= ', lumisections
@@ -69,6 +123,8 @@ runs[run] = {
     }
 
 filepath = os.path.join(histdir, histfile)
+if DEBUG:
+    print 'DEBUG:\tfile=', filepath
 f = TFile(filepath)
 def GetKeyNames( self, dir = "" ):
         self.cd(dir)
@@ -82,23 +138,23 @@ keyList = f.GetKeyNames('')
 #        print f.Get(k).ClassName(), k
 
 plots = collections.OrderedDict()
-#plots['h_ClusterStoN_vs_bx'] = {
-#        'histname': 'h_ClusterStoN_vs_bx',
-#        'class': 'TH2',
-##        'rebin': 10,
-#        'y-min': 20,
-#        'y-max': 70,
-##        'x-min': 0,
-##        'x-max': 3600,
-#        'x-custom': True,
-#        'x-title': 'bx number',
-#        'y-title': 'signal / noise',
-#    }
+plots['h_ClusterStoN_vs_bx'] = {
+        'histname': 'h_ClusterStoN_vs_bx',
+        'class': 'TH2',
+#        'rebin': 10,
+        'y-min': 20,
+        'y-max': 70,
+#        'x-min': 0,
+#        'x-max': 3600,
+        'x-custom': True,
+        'x-title': 'bx number',
+        'y-title': 'signal / noise',
+    }
 plots['h_ClusterStoN_vs_bx_fit_lxg'] = {
         'histname': 'h_ClusterStoN_vs_bx_fit_lxg',
         'class': 'TGraphAssymmErrors',
-        'y-min': 0,
-        'y-max': 120,
+        'y-min': 10,
+        'y-max': 70,
         'x-custom': False,
         'x-title': 'bx number',
         'y-title': 'signal / noise',
@@ -118,7 +174,7 @@ plots['h_ClusterStoN_vs_bx_fit_lxg'] = {
 #        'x-title': 'signal / noise',
 #    }
 bxs_th2 = ['0-3600']
-bxs_th1 = ['1001-1006']
+bxs_th1 = bxs[0:min(10, len(bxs))]
 
 ymin = None
 ymax = None
@@ -138,6 +194,7 @@ for ilayer, layer in enumerate(layers):
         if 'TH2' in plots[plot]['class']:
             if DEBUG:
                 print 'DEBUG:\tThis is a TH2 plot'
+            atLeastOneHistoToDraw = False
             c2.cd()
             legend = TLegend(0.25, 0.72, 0.80, 0.93, "")
             legend.SetNColumns(2)
@@ -165,6 +222,7 @@ for ilayer, layer in enumerate(layers):
                                 if DEBUG:
                                     print 'DEBUG:\tempty histo, skipping'
                                 continue
+                            atLeastOneHistoToDraw = True
                             if DEBUG:
                                 print 'DEBUG:\tkey= ', k
                                 print 'DEBUG:\thistname= ', plots[plot]['histname']
@@ -177,7 +235,8 @@ for ilayer, layer in enumerate(layers):
                             if plots[plot]['x-custom']:
                                 if DEBUG:
                                     print 'DEBUG:\tcustom rebinning (edges)'
-                                h.rebinX(edges)
+                                    print splitedges
+                                h = h.rebinX(splitedges)
                             p = h.ProfileX()
                             p.SetLineColor(runs[run]['color'] + ilumisection + ibx*2)
                             p.SetMarkerColor(runs[run]['color'] + ilumisection + ibx*2)
@@ -213,26 +272,27 @@ for ilayer, layer in enumerate(layers):
                     # end of loop over bx intervals
                 # end of loop of lumisections
             # end of loop over runs
-            mypoly = {}
-            for i in xrange(0, len(edges), 2):
-                if i+1 >= len(edges):
-                    continue
-                x = array('f', [edges[i], edges[i+1], edges[i+1], edges[i]])
-                y = array('f', [ymin, ymin, ymax, ymax])
-                mypoly[i] = ROOT.TPolyLine(4, x, y)
-                mypoly[i].SetFillColorAlpha(ROOT.kGray, .35)
-                mypoly[i].SetLineColor(ROOT.kGray)
-                mypoly[i].SetLineWidth(0)
-                mypoly[i].Draw('fsame')
-            ROOT.gPad.RedrawAxis()
-            latexLabel = TLatex()
-            latexLabel.SetTextSize(0.75 * c1.GetTopMargin())
-            latexLabel.SetNDC()
-            latexLabel.SetTextFont(42) # helvetica
-#            latexLabel.DrawLatex(0.27, 0.96, layer)
-            legend.Draw()
-            c2.Print(plotdir + "/" + plotname + ".png")
-            c2.Print(plotdir + "/" + plotname + ".pdf")
+            if atLeastOneHistoToDraw:
+                mypoly = {}
+                for i in xrange(0, len(edges), 2):
+                    if i+1 >= len(edges):
+                        continue
+                    x = array('f', [edges[i], edges[i+1], edges[i+1], edges[i]])
+                    y = array('f', [ymin, ymin, ymax, ymax])
+                    mypoly[i] = ROOT.TPolyLine(4, x, y)
+                    mypoly[i].SetFillColorAlpha(ROOT.kGray, .35)
+                    mypoly[i].SetLineColor(ROOT.kGray)
+                    mypoly[i].SetLineWidth(0)
+                    mypoly[i].Draw('fsame')
+                ROOT.gPad.RedrawAxis()
+                latexLabel = TLatex()
+                latexLabel.SetTextSize(0.75 * c1.GetTopMargin())
+                latexLabel.SetNDC()
+                latexLabel.SetTextFont(42) # helvetica
+    #            latexLabel.DrawLatex(0.27, 0.96, layer)
+                legend.Draw()
+                c2.Print(plotdir + "/" + plotname + ".png")
+                c2.Print(plotdir + "/" + plotname + ".pdf")
             c2.Clear()
             # end of work on TH2
         # Do TH2 histos
@@ -241,6 +301,7 @@ for ilayer, layer in enumerate(layers):
         if 'TGraph' in plots[plot]['class']:
             if DEBUG:
                 print 'DEBUG:\tThis is a TGraph plot'
+            atLeastOneHistoToDraw = False
             c2.cd()
             legend = TLegend(0.25, 0.72, 0.80, 0.93, "")
             legend.SetNColumns(2)
@@ -268,6 +329,7 @@ for ilayer, layer in enumerate(layers):
                                 if DEBUG:
                                     print 'DEBUG:\tempty histo, skipping'
                                 continue
+                            atLeastOneHistoToDraw = True
                             if DEBUG:
                                 print 'DEBUG:\tkey= ', k
                                 print 'DEBUG:\thistname= ', plots[plot]['histname']
@@ -280,7 +342,8 @@ for ilayer, layer in enumerate(layers):
                             if plots[plot]['x-custom']:
                                 if DEBUG:
                                     print 'DEBUG:\tcustom rebinning (edges)'
-                                h.rebinX(edges)
+                                    print splitedges
+                                h = h.rebinX(splitedges)
                             h.SetLineColor(runs[run]['color'] + ilumisection + ibx*2)
                             h.SetMarkerColor(runs[run]['color'] + ilumisection + ibx*2)
                             h.SetMarkerStyle(runs[run]['marker'] + ilumisection + ibx*2)
@@ -315,26 +378,29 @@ for ilayer, layer in enumerate(layers):
                     # end of loop over bx intervals
                 # end of loop of lumisections
             # end of loop over runs
-            mypoly = {}
-            for i in xrange(0, len(edges), 2):
-                if i+1 >= len(edges):
-                    continue
-                x = array('f', [edges[i], edges[i+1], edges[i+1], edges[i]])
-                y = array('f', [ymin, ymin, ymax, ymax])
-                mypoly[i] = ROOT.TPolyLine(4, x, y)
-                mypoly[i].SetFillColorAlpha(ROOT.kGray, .35)
-                mypoly[i].SetLineColor(ROOT.kGray)
-                mypoly[i].SetLineWidth(0)
-                mypoly[i].Draw('fsame')
-            ROOT.gPad.RedrawAxis()
-            latexLabel = TLatex()
-            latexLabel.SetTextSize(0.75 * c1.GetTopMargin())
-            latexLabel.SetNDC()
-            latexLabel.SetTextFont(42) # helvetica
-#            latexLabel.DrawLatex(0.27, 0.96, layer)
-            legend.Draw()
-            c2.Print(plotdir + "/" + plotname + ".png")
-            c2.Print(plotdir + "/" + plotname + ".pdf")
+            if atLeastOneHistoToDraw:
+                mypoly = {}
+                if DEBUG:
+                    print 'DEBUG:\tymin, ymax=', ymin, ymax
+                for i in xrange(0, len(edges), 2):
+                    if i+1 >= len(edges):
+                        continue
+                    x = array('f', [edges[i], edges[i+1], edges[i+1], edges[i]])
+                    y = array('f', [ymin, ymin, ymax, ymax])
+                    mypoly[i] = ROOT.TPolyLine(4, x, y)
+                    mypoly[i].SetFillColorAlpha(ROOT.kGray, .35)
+                    mypoly[i].SetLineColor(ROOT.kGray)
+                    mypoly[i].SetLineWidth(0)
+                    mypoly[i].Draw('fsame')
+                ROOT.gPad.RedrawAxis()
+                latexLabel = TLatex()
+                latexLabel.SetTextSize(0.75 * c1.GetTopMargin())
+                latexLabel.SetNDC()
+                latexLabel.SetTextFont(42) # helvetica
+    #            latexLabel.DrawLatex(0.27, 0.96, layer)
+                legend.Draw()
+                c2.Print(plotdir + "/" + plotname + ".png")
+                c2.Print(plotdir + "/" + plotname + ".pdf")
             c2.Clear()
             # end of work on TH2
 # IF TH1
@@ -394,7 +460,7 @@ for ilayer, layer in enumerate(layers):
                             else:
                                 c1.SetLogy(0)
                             if irun > 0 or ilumisection > 0 or ibx > 0:
-                                drawoptions ='same'
+                                drawoptions += 'same'
                                 legend.SetHeader(layer)
                             if plots[plot].get('xrebin', None):
                                 h.RebinX(plots[plot]['xrebin'])
