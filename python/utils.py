@@ -40,7 +40,7 @@ def connect_to_lxplus(username):
         print "Current ticket: %s" % ticket
         ticket = ticket.split()
         now = datetime.now()
-        t_ticket = datetime.strptime(ticket[2] + ':' + ticket[3], '%d/%m/%y:%H:%M:%S')
+        t_ticket = datetime.strptime(ticket[2] + ':' + ticket[3], '%m/%d/%y:%H:%M:%S')
         if now > t_ticket:
             print 'Ticket no longer valid'
             is_ticket_valid = False

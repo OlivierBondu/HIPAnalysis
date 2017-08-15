@@ -42,7 +42,7 @@ def checkMyProd(workArea, isNewProd):
         for k in tmp:
             if 'files' in k:
                 continue
-            if ('COMPLETED' not in k) and ('FAILED' not in k):
+            if ('COMPLETED' not in k):
                 tocheck += summary[k]
                 del summary[k]
                 
@@ -69,17 +69,18 @@ def checkMyProd(workArea, isNewProd):
         print k, len(summary[k])
 
     files = summary['files']
-    for t in summary['COMPLETED']:
-        alreadyHere = False
-        for f in files:
-            if t in f:
-                alreadyHere = True
-        if not alreadyHere:
-            res = crabCommand('getoutput', '--dump', dir = workArea + '/' + t)
-            print 'task:\t', t
-            files += res['lfn']
-            for f in res['lfn']:
-                print '\t', f
+    if 'COMPLETED' in summary:
+        for t in summary['COMPLETED']:
+            alreadyHere = False
+            for f in files:
+                if t in f:
+                    alreadyHere = True
+            if not alreadyHere:
+                res = crabCommand('getoutput', '--dump', dir = workArea + '/' + t)
+                print 'task:\t', t
+                files += res['lfn']
+                for f in res['lfn']:
+                    print '\t', f
 
     with open(summaryFile, 'w') as f:
         json.dump(summary, f)

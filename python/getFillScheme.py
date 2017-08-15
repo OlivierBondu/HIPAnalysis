@@ -113,7 +113,7 @@ if __name__ == '__main__':
         lhcfill = utils.get_fill_number(run, username)
         outfile = utils.get_outfile(run, lhcfill)
         data = None
-        with open(outfilename, 'r') as f:
+        with open(outfile, 'r') as f:
             data = json.load(f)
         if outfile:
             scheme, bx_scheme_name = getFillScheme(lhcfill)

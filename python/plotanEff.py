@@ -15,33 +15,35 @@ import copy
 #histfile = "histos.root"
 
 histdir = '/storage/data/cms/store/user/obondu/CRAB_PrivateMC/'
-# 297100
-#histfile = 'crab_anEffAnalysis_run_297100_split_0/170810_125553/0000/histos_1.root'
-#histfile = 'crab_anEffAnalysis_run_297100_split_24/170810_125602/0000/histos_1.root'
-histfile = 'crab_anEffAnalysis_run_297100_split_12/170810_125558/0000/histos_1.root'
-#histfile = 'crab_anEffAnalysis_run_297100_split_48/170810_125608/0000/histos_1.root'
+
+# 296786
+#histfile = "crab_anEffAnalysis_run_296786_split_0/170814_153849/0000/histos_1.root"
+#histfile = "crab_anEffAnalysis_run_296786_split_12/170814_153853/0000/histos_1.root"
+#histfile = "crab_anEffAnalysis_run_296786_split_24/170814_153858/0000/histos_1.root"
+# 297722
+#histfile = "crab_anEffAnalysis_run_297722_split_0/170814_153820/0000/histos_1.root"
+#histfile = "crab_anEffAnalysis_run_297722_split_12/170814_153824/0000/histos_1.root"
+#histfile = "crab_anEffAnalysis_run_297722_split_24/170814_153829/0000/histos_1.root"
 # 299061
-#histfile = 'crab_anEffAnalysis_run_299061_split_0/170810_125709/0000/histos_1.root'
-#histfile = 'crab_anEffAnalysis_run_299061_split_12/170810_125713/0000/histos_1.root'
-#histfile = 'crab_anEffAnalysis_run_299061_split_24/170810_125718/0000/histos_1.root'
-#histfile = 'crab_anEffAnalysis_run_299061_split_48/170810_125722/0000/histos_1.root'
+#histfile = "crab_anEffAnalysis_run_299061_split_0/170814_153834/0000/histos_1.root"
+#histfile = "crab_anEffAnalysis_run_299061_split_12/170814_153839/0000/histos_1.root"
+histfile = "crab_anEffAnalysis_run_299061_split_24/170814_153844/0000/histos_1.root"
+# FIXME: waiting for 301165 300124
 
-#histfile = 'crab_anEffAnalysis_run_297722_split_48/170810_125705/0000/histos_1.root'
-#histfile = 'crab_anEffAnalysis_run_296173_split_0/170810_125517/0000/histos_1.root'
-#histfile = 'crab_anEffAnalysis_run_296786_split_48/170810_125548/0000/histos_1.root'
-#histfile = 'crab_anEffAnalysis_run_296786_split_24/170810_125543/0000/histos_1.root'
-#histfile = 'crab_anEffAnalysis_run_297503_split_0/170810_125632/0000/histos_1.root'
-#histfile = 'crab_anEffAnalysis_run_296786_split_0/170810_125535/0000/histos_1.root'
-#histfile = 'crab_anEffAnalysis_run_297722_split_0/170810_125651/0000/histos_1.root'
-#histfile = 'crab_anEffAnalysis_run_297722_split_12/170810_125655/0000/histos_1.root'
-#histfile = 'crab_anEffAnalysis_run_297503_split_12/170810_125637/0000/histos_1.root'
-#histfile = 'crab_anEffAnalysis_run_297722_split_24/170810_125700/0000/histos_1.root'
-#histfile = 'crab_anEffAnalysis_run_296786_split_12/170810_125539/0000/histos_1.root'
+### 297503
+###histfile = "crab_anEffAnalysis_run_297503_split_0/170814_153903/0000/histos_1.root"
+###histfile = "crab_anEffAnalysis_run_297503_split_12/170814_153907/0000/histos_1.root"
+###histfile = "crab_anEffAnalysis_run_297503_split_24/170814_153912/0000/histos_1.root"
+### 297100
+###histfile = "crab_anEffAnalysis_run_297100_split_0/170814_153806/0000/histos_1.root"
+###histfile = "crab_anEffAnalysis_run_297100_split_24/170814_153815/0000/histos_1.root"
 
-run = 297100
-SPLITTRAIN = 12
-plotdir = "170811_SoN_%i_%i" % (run, SPLITTRAIN)
-DEBUG = True
+task = histfile.split('/')[0]
+run = int(task.split('_')[3])
+SPLITTRAIN = int(task.split('_')[5])
+plotdir = "170815_SoN_%i_%i" % (run, SPLITTRAIN)
+DEBUG = False
+print run, SPLITTRAIN, plotdir
 
 # ROOT setup
 import ROOT
@@ -138,27 +140,50 @@ keyList = f.GetKeyNames('')
 #        print f.Get(k).ClassName(), k
 
 plots = collections.OrderedDict()
-plots['h_ClusterStoN_vs_bx'] = {
+plots['h_ClusterStoN_vs_bx_zoom'] = {
         'histname': 'h_ClusterStoN_vs_bx',
         'class': 'TH2',
-#        'rebin': 10,
         'y-min': 20,
         'y-max': 70,
-#        'x-min': 0,
-#        'x-max': 3600,
+        'x-min': 500,
+        'x-max': 1000,
         'x-custom': True,
         'x-title': 'bx number',
         'y-title': 'signal / noise',
     }
-plots['h_ClusterStoN_vs_bx_fit_lxg'] = {
+plots['h_ClusterStoN_vs_bx_fit_lxg_zoom'] = {
         'histname': 'h_ClusterStoN_vs_bx_fit_lxg',
         'class': 'TGraphAssymmErrors',
         'y-min': 10,
         'y-max': 70,
+        'x-min': 500,
+        'x-max': 1000,
         'x-custom': False,
         'x-title': 'bx number',
         'y-title': 'signal / noise',
     }
+#plots['h_ClusterStoN_vs_bx'] = {
+#        'histname': 'h_ClusterStoN_vs_bx',
+#        'class': 'TH2',
+#        'y-min': 20,
+#        'y-max': 70,
+#        'x-min': 0,
+#        'x-max': 3600,
+#        'x-custom': True,
+#        'x-title': 'bx number',
+#        'y-title': 'signal / noise',
+#    }
+#plots['h_ClusterStoN_vs_bx_fit_lxg'] = {
+#        'histname': 'h_ClusterStoN_vs_bx_fit_lxg',
+#        'class': 'TGraphAssymmErrors',
+#        'y-min': 10,
+#        'y-max': 70,
+#        'x-min': 0,
+#        'x-max': 3600,
+#        'x-custom': False,
+#        'x-title': 'bx number',
+#        'y-title': 'signal / noise',
+#    }
 #plots['ClusterStoN'] = {
 #        'histname': 'h_ClusterStoN',
 #        'class': 'TH1',
@@ -168,13 +193,16 @@ plots['h_ClusterStoN_vs_bx_fit_lxg'] = {
 #        'xrebin': 5,
 #        'y-max': 0.255,
 #        'y-log': False,
-##        'y-max': 9.0,
-##        'y-log': True,
 #        'legendColumns': 1,
 #        'x-title': 'signal / noise',
 #    }
+#plots['RooPlot_ClusterStoN'] = {
+#        'histname': 'frame',
+#        'class': 'RooPlot',
+#}
 bxs_th2 = ['0-3600']
-bxs_th1 = bxs[0:min(10, len(bxs))]
+#bxs_th1 = bxs[0:min(5, len(bxs))]
+bxs_th1 = bxs[3:4]
 
 ymin = None
 ymax = None
@@ -276,6 +304,8 @@ for ilayer, layer in enumerate(layers):
                 mypoly = {}
                 for i in xrange(0, len(edges), 2):
                     if i+1 >= len(edges):
+                        continue
+                    if edges[i] < plots[plot]['x-min'] or edges[i+1] > plots[plot]['x-max']:
                         continue
                     x = array('f', [edges[i], edges[i+1], edges[i+1], edges[i]])
                     y = array('f', [ymin, ymin, ymax, ymax])
@@ -384,6 +414,8 @@ for ilayer, layer in enumerate(layers):
                     print 'DEBUG:\tymin, ymax=', ymin, ymax
                 for i in xrange(0, len(edges), 2):
                     if i+1 >= len(edges):
+                        continue
+                    if edges[i] < plots[plot]['x-min'] or edges[i+1] > plots[plot]['x-max']:
                         continue
                     x = array('f', [edges[i], edges[i+1], edges[i+1], edges[i]])
                     y = array('f', [ymin, ymin, ymax, ymax])
@@ -495,7 +527,67 @@ for ilayer, layer in enumerate(layers):
                 if DEBUG:
                     print 'DEBUG:\tNothing to Draw!'
             c1.Clear()
-            # end of work on TH2
+            # end of work on TH1
+# IF RooPlot
+        # Do RooPlot histos
+        if 'RooPlot' in plots[plot]['class']:
+            if DEBUG:
+                print 'DEBUG:\tThis is a RooPlot plot'
+            c1.cd()
+            legend = TLegend(0.15, 0.72, 0.80, 0.93, "")
+            legend.SetNColumns(2)
+            legend.SetFillColor(ROOT.kWhite)
+            legend.SetLineColor(ROOT.kWhite)
+            legend.SetShadowColor(ROOT.kWhite)
+            atLeastOneHistoToDraw = False
+            for irun, run in enumerate(runs):
+                for ilumisection, lumisection in enumerate(lumisections):
+                    for ibx, bx in enumerate(bxs_th1):
+                        if DEBUG:
+                            print 'DEBUG:\tbx= ', bx
+                        for k in keyList:
+                            if plots[plot]['histname'] not in k:
+                                continue
+                            if layer not in k or str(run) not in k:
+                                continue
+                            if bx not in k:
+                                continue
+                            h = f.Get(k)
+                            if 'RooPlot' not in h.ClassName():
+                                continue
+                            drawoptions = ''
+                            if DEBUG:
+                                print 'DEBUG:\t', layer, run, bx, h.ClassName(), k
+                            h.SetTitle('')
+                            if 'x-title' in plots[plot]:
+                                h.GetXaxis().SetTitle(plots[plot]['x-title'])
+                            if 'y-title' in plots[plot]:
+                                h.GetYaxis().SetTitle(plots[plot]['y-title'])
+                            c1.SetGrid()
+                            if plots[plot].get('y-log', False):
+                                c1.SetLogy(1)
+                            else:
+                                c1.SetLogy(0)
+                            h.Draw(drawoptions)
+                            legend.AddEntry(h.GetName(), '%i %s bx:%s' % (run, runs[run]['comments'], bx), 'l')
+                            ROOT.gPad.Modified()
+                            ROOT.gPad.Update()
+                        # end of loop over histos
+                        if DEBUG:
+                            print 'DEBUG:\tend of loop over histos'
+                        latexLabel = TLatex()
+                        latexLabel.SetTextSize(0.75 * c1.GetTopMargin())
+                        latexLabel.SetNDC()
+                        latexLabel.SetTextFont(42) # helvetica
+            #            latexLabel.DrawLatex(0.27, 0.96, layer)
+#                        legend.Draw()
+                        c1.Print(plotdir + "/" + plotname + ".png")
+                        c1.Print(plotdir + "/" + plotname + ".pdf")
+                        c1.Clear()
+                    # end of loop over bx intervals
+                # end of loop of lumisections
+            # end of loop over runs
+            # end of work on RooPlot
         # end of loop over runs
     # end of loop over plots
 # end of loop over layer 
