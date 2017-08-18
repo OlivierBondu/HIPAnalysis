@@ -4,7 +4,7 @@ import json
 RUN_NUMBER = 299061
 N_FILES = 1
 SPLITTRAIN = 0
-INFOJSON = "/home/fynu/obondu/TRK/CMSSW_9_2_3_patch2/src/CalibTracker/HIPAnalysis/test/data/list_calibTrees_Fill-5950_Run-299061.json"
+INFOJSON = "/afs/cern.ch/work/o/obondu/TRK/CMSSW_9_2_3_patch2/src/CalibTracker/HIPAnalysis/test/data/list_calibTrees_Fill-5950_Run-299061.json"
 
 data = None
 with open(INFOJSON, 'r') as f:
@@ -48,7 +48,7 @@ for train in data['scheme']:
     else:
         bxs.append('%i-%i' % (train[0], train[-1]))
 
-bxs_th1 = bxs
+bxs_th1 = bxs[:3]
 bxs_th2 = ['0-3600']
 print 'Will fill %i TH1 and %i TH2' % (len(bxs_th1), len(bxs_th2))
 

@@ -297,7 +297,13 @@ anEffAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
                     unsigned int bxlow = getBx(*it_bxs).first;
                     unsigned int bxhig = getBx(*it_bxs).second;
                     std::cout << "Filling histograms for " << h_name << std::endl;
-                    intree->Draw(("ClusterStoN>>h_ClusterStoN_" + h_name + "(2000, 0, 2000)").c_str(), (m_filter_exp + "&& (" + std::to_string(bxlow) + " <= bunchx && bunchx <= " + std::to_string(bxhig) + ")").c_str(), "");
+                    // ClusterStoN is the S / N NOT corrected for the track angle
+                    // we need to correct it by cosRZ = pz / p
+                    // (see 
+                    // unfortunately the local pz is not stored
+                    // fortunately, we have and px = pz * locDxDz and TrajLocAngleX = atan(locDxDz)
+                    // so we have cosRZ = 1 / sqrt(1 + pow(tan(TrajLocAngleX), 2) + pow(tan(TrajLocAngleY), 2))
+                    intree->Draw(("(ClusterStoN / sqrt(1 + pow(tan(TrajLocAngleX), 2) + pow(tan(TrajLocAngleY), 2)))>>h_ClusterStoN_" + h_name + "(2000, 0, 2000)").c_str(), (m_filter_exp + "&& (" + std::to_string(bxlow) + " <= bunchx && bunchx <= " + std::to_string(bxhig) + ")").c_str(), "");
                     TH1F *h = (TH1F*)c1->GetPrimitive(("h_ClusterStoN_" + h_name).c_str());
                     map_h_ClusterStoN[h_name]->Add(h);
                     delete h;
@@ -311,7 +317,7 @@ anEffAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
                     unsigned int bxlow = getBx(*it_bxs).first;
                     unsigned int bxhig = getBx(*it_bxs).second;
                     std::cout << "Filling histograms for " << h_name << std::endl;
-                    intree->Draw("ClusterStoN:bunchx>>h3(3600, 0, 3600, 2000, 0, 2000)", (m_filter_exp + "&& (" + std::to_string(bxlow) + " <= bunchx && bunchx <= " + std::to_string(bxhig) + ")").c_str(), "colz");
+                    intree->Draw("(ClusterStoN / sqrt(1 + pow(tan(TrajLocAngleX), 2) + pow(tan(TrajLocAngleY), 2))):bunchx>>h3(3600, 0, 3600, 2000, 0, 2000)", (m_filter_exp + "&& (" + std::to_string(bxlow) + " <= bunchx && bunchx <= " + std::to_string(bxhig) + ")").c_str(), "colz");
                     map_h_ClusterStoN_vs_bx[h_name]->Add((TH2F*)(c1->GetPrimitive("h3")));
                     // necessary because of the weird way the graph is translated into a TH2F automatically by root
                     map_h_ClusterStoN_vs_bx[h_name]->SetName(("h_ClusterStoN_vs_bx_" + h_name).c_str());
@@ -391,11 +397,11 @@ void anEffAnalysis::fitAll()
                 datahist.plotOn(frame);
 
                 // Try Landau convolved with a gaussian
-                RooRealVar meanG("meanG", "meanG", 0);
+//                RooRealVar meanG("meanG", "meanG", 0);
                 RooRealVar sigmaG("sigmaG", "sigmaG", 1, 0.1, 20);
                 RooRealVar meanL("meanL", "meanL", 30, 10, 50);
                 RooRealVar sigmaL("sigmaL", "sigmaL", 0.1, 100);
-                RooGaussian gaussian("gaussian", "gaussian", StoN, meanG, sigmaG);
+                RooGaussian gaussian("gaussian", "gaussian", StoN, meanL, sigmaG);
                 RooLandau landau("landau", "landau", StoN, meanL, sigmaL);
                 // Set #bins to be used for FFT sampling to 10000
                 StoN.setBins(10000, "cache");
@@ -463,10 +469,18 @@ void anEffAnalysis::fitAll()
                     std::string h_name_th2 = histname(*it_runs, *it_layers, *it_bxs_th2);
                     float bxmean = (bxhig - bxlow) / 2. + bxlow;
                     unsigned int n = map_h_ClusterStoN_vs_bx_fit_lxg[h_name_th2]->GetN();
-                    map_h_ClusterStoN_vs_bx_fit_lxg[h_name_th2]->SetPoint(n, bxmean, xmax_lxg);
-                    map_h_ClusterStoN_vs_bx_fit_lxg[h_name_th2]->SetPointError(n, bxmean - bxlow, bxhig - bxmean, xmax_lxg - x1_lxg, x2_lxg - xmax_lxg);
-                    map_h_ClusterStoN_vs_bx_fit_lpg[h_name_th2]->SetPoint(n, bxmean, xmax_lpg);
-                    map_h_ClusterStoN_vs_bx_fit_lpg[h_name_th2]->SetPointError(n, bxmean - bxlow, bxhig - bxmean, xmax_lpg - x1_lpg, x2_lpg - xmax_lpg);
+//  y: maximum of the fitted function
+// dy: FWHM
+//                    map_h_ClusterStoN_vs_bx_fit_lxg[h_name_th2]->SetPoint(n, bxmean, xmax_lxg);
+//                    map_h_ClusterStoN_vs_bx_fit_lxg[h_name_th2]->SetPointError(n, bxmean - bxlow, bxhig - bxmean, xmax_lxg - x1_lxg, x2_lxg - xmax_lxg);
+//                    map_h_ClusterStoN_vs_bx_fit_lpg[h_name_th2]->SetPoint(n, bxmean, xmax_lpg);
+//                    map_h_ClusterStoN_vs_bx_fit_lpg[h_name_th2]->SetPointError(n, bxmean - bxlow, bxhig - bxmean, xmax_lpg - x1_lpg, x2_lpg - xmax_lpg);
+                    std::cout << "meanL: " << meanL.getVal() << " +- " << meanL.getError() << std::endl;
+                    std::cout << "meanL2: " << meanL2.getVal() << " +- " << meanL2.getError() << std::endl;
+                    map_h_ClusterStoN_vs_bx_fit_lxg[h_name_th2]->SetPoint(n, bxmean, meanL.getVal());
+                    map_h_ClusterStoN_vs_bx_fit_lxg[h_name_th2]->SetPointError(n, bxmean - bxlow, bxhig - bxmean, meanL.getError(), meanL.getError());
+                    map_h_ClusterStoN_vs_bx_fit_lpg[h_name_th2]->SetPoint(n, bxmean, meanL2.getVal());
+                    map_h_ClusterStoN_vs_bx_fit_lpg[h_name_th2]->SetPointError(n, bxmean - bxlow, bxhig - bxmean, meanL2.getError(), meanL2.getError());
                     frame->SetName(("frame_" + h_name).c_str());
                     frame->SetTitle(("frame_" + h_name).c_str());
                     frame->Draw();
