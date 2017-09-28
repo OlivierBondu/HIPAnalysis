@@ -55,6 +55,7 @@
 #include "RooGaussian.h"
 #include "RooLandau.h"
 #include "RooFFTConvPdf.h"
+#include "RooFitResult.h"
 
 // C++ includes
 #include <iostream>
@@ -297,7 +298,15 @@ anEffAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
                     unsigned int bxlow = getBx(*it_bxs).first;
                     unsigned int bxhig = getBx(*it_bxs).second;
                     std::cout << "Filling histograms for " << h_name << std::endl;
-                    intree->Draw(("ClusterStoN>>h_ClusterStoN_" + h_name + "(2000, 0, 2000)").c_str(), (m_filter_exp + "&& (" + std::to_string(bxlow) + " <= bunchx && bunchx <= " + std::to_string(bxhig) + ")").c_str(), "");
+                    // ClusterStoN is the S / N NOT corrected for the track angle
+                    // we need to correct it by cosRZ = pz / p
+                    // (see https://github.com/cms-sw/cmssw/blob/d3284753b8b09f5a37e224c05eb4e9588871c3c1/DQM/SiStripMonitorTrack/src/SiStripMonitorTrack.cc#L1388
+                    // http://cmsdoxygen.web.cern.ch/cmsdoxygen/CMSSW_9_2_9/doc/html/dd/de2/classLocalTrajectoryParameters.html#a229a7c88e4cf4ccfff41a7b4e507f4b6
+                    // https://github.com/cms-sw/cmssw/blob/b257262e180277e5805c8cb4c8ce8ea905906d08/CalibTracker/SiStripHitEfficiency/src/HitEff.cc#L498-L499 ) 
+                    // unfortunately the local pz is not stored
+                    // fortunately, we have and px = pz * locDxDz and TrajLocAngleX = atan(locDxDz)
+                    // so we have cosRZ = 1 / sqrt(1 + pow(tan(TrajLocAngleX), 2) + pow(tan(TrajLocAngleY), 2))
+                    intree->Draw(("(ClusterStoN / sqrt(1 + pow(tan(TrajLocAngleX), 2) + pow(tan(TrajLocAngleY), 2)))>>h_ClusterStoN_" + h_name + "(2000, 0, 2000)").c_str(), (m_filter_exp + "&& (" + std::to_string(bxlow) + " <= bunchx && bunchx <= " + std::to_string(bxhig) + ")").c_str(), "");
                     TH1F *h = (TH1F*)c1->GetPrimitive(("h_ClusterStoN_" + h_name).c_str());
                     map_h_ClusterStoN[h_name]->Add(h);
                     delete h;
@@ -311,7 +320,7 @@ anEffAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
                     unsigned int bxlow = getBx(*it_bxs).first;
                     unsigned int bxhig = getBx(*it_bxs).second;
                     std::cout << "Filling histograms for " << h_name << std::endl;
-                    intree->Draw("ClusterStoN:bunchx>>h3(3600, 0, 3600, 2000, 0, 2000)", (m_filter_exp + "&& (" + std::to_string(bxlow) + " <= bunchx && bunchx <= " + std::to_string(bxhig) + ")").c_str(), "colz");
+                    intree->Draw("(ClusterStoN / sqrt(1 + pow(tan(TrajLocAngleX), 2) + pow(tan(TrajLocAngleY), 2))):bunchx>>h3(3600, 0, 3600, 2000, 0, 2000)", (m_filter_exp + "&& (" + std::to_string(bxlow) + " <= bunchx && bunchx <= " + std::to_string(bxhig) + ")").c_str(), "colz");
                     map_h_ClusterStoN_vs_bx[h_name]->Add((TH2F*)(c1->GetPrimitive("h3")));
                     // necessary because of the weird way the graph is translated into a TH2F automatically by root
                     map_h_ClusterStoN_vs_bx[h_name]->SetName(("h_ClusterStoN_vs_bx_" + h_name).c_str());
@@ -391,19 +400,20 @@ void anEffAnalysis::fitAll()
                 datahist.plotOn(frame);
 
                 // Try Landau convolved with a gaussian
-                RooRealVar meanG("meanG", "meanG", 0);
+//                RooRealVar meanG("meanG", "meanG", 0);
                 RooRealVar sigmaG("sigmaG", "sigmaG", 1, 0.1, 20);
                 RooRealVar meanL("meanL", "meanL", 30, 10, 50);
                 RooRealVar sigmaL("sigmaL", "sigmaL", 0.1, 100);
-                RooGaussian gaussian("gaussian", "gaussian", StoN, meanG, sigmaG);
+                RooGaussian gaussian("gaussian", "gaussian", StoN, meanL, sigmaG);
                 RooLandau landau("landau", "landau", StoN, meanL, sigmaL);
                 // Set #bins to be used for FFT sampling to 10000
                 StoN.setBins(10000, "cache");
                 RooFFTConvPdf model("model", "landau (X) gauss", StoN, landau, gaussian) ;
+                RooFitResult* r = 0;
                 if (m_verbose_fit) {
-                    model.fitTo(datahist);
+                    r = model.fitTo(datahist, RooFit::Save());
                 } else {
-                    model.fitTo(datahist, RooFit::PrintLevel(-1));
+                    r = model.fitTo(datahist, RooFit::PrintLevel(-1), RooFit::Save());
                 }
                 model.plotOn(frame, RooFit::LineColor(kBlue));
                 // Get the maxima
@@ -417,6 +427,21 @@ void anEffAnalysis::fitAll()
                     std::cout << "From TF1, maximum at (x, y) = (" << xmax_lxg << " , " << ymax_lxg << ")" << std::endl;
                     std::cout << "From TF1, FWHM at (x1, x2) = (" << x1_lxg << " , " << x2_lxg << ")" << std::endl;
                 }
+                // Now let's get some uncertainty on xmax
+                TH1F h_xmax("h_xmax", "h_xmax", 5000, 0, 50);
+                int ntoys = 500;
+                RooArgSet* model_params = model.getParameters(RooArgList(StoN));
+                model_params->writeToStream(std::cout, true);
+                for (int i = 0 ; i < ntoys ; i++) {
+                    // get a randomized set of parameters for the model from the fit results
+                    RooArgList randomizedParams = r->randomizePars();
+                    *model_params = randomizedParams;
+                    TF1 *lxg_toy = model.asTF(RooArgList(StoN));
+                    h_xmax.Fill(lxg_toy->GetMaximumX());
+                    lxg_toy = 0;
+                }
+                r = 0;
+                
 
                 // Try landau + a gaussian
                 RooRealVar meanG2("meanG2", "meanG2", 30, 10, 50);
@@ -428,9 +453,9 @@ void anEffAnalysis::fitAll()
                 RooRealVar x("x", "x", 0.1, 0, 0.4);
                 RooAddPdf model2("model2", "model2", gaussian2, landau2, x);
                 if (m_verbose_fit) {
-                    model2.fitTo(datahist);
+                    r = model2.fitTo(datahist, RooFit::Save());
                 } else {
-                    model2.fitTo(datahist, RooFit::PrintLevel(-1));
+                    r = model2.fitTo(datahist, RooFit::PrintLevel(-1), RooFit::Save());
                 }
                 model2.plotOn(frame, RooFit::LineColor(kRed));
                 // Get the maxima
@@ -449,6 +474,19 @@ void anEffAnalysis::fitAll()
                     std::cout << "From TF1, maximum at (x, y) = (" << xmax_lpg << " , " << ymax_lpg << ")" << std::endl;
                     std::cout << "From TF1, FWHM at (x1, x2) = (" << x1_lpg << " , " << x2_lpg << ")" << std::endl;
                 }
+                // Now let's get some uncertainty on xmax
+                TH1F h_xmax2("h_xmax2", "h_xmax2", 5000, 0, 50);
+                RooArgSet* model2_params = model2.getParameters(RooArgList(StoN));
+                model2_params->writeToStream(std::cout, true);
+                for (int i = 0 ; i < ntoys ; i++) {
+                    // get a randomized set of parameters for the model from the fit results
+                    RooArgList randomizedParams2 = r->randomizePars();
+                    *model2_params = randomizedParams2;
+                    TF1 *lpg_toy = model2.asTF(RooArgList(StoN));
+                    h_xmax2.Fill(lpg_toy->GetMaximumX());
+                    lpg_toy = 0;
+                }
+                r = 0;
 
                 // Redraw data on top and print / store everything
                 datahist.plotOn(frame);
@@ -463,10 +501,18 @@ void anEffAnalysis::fitAll()
                     std::string h_name_th2 = histname(*it_runs, *it_layers, *it_bxs_th2);
                     float bxmean = (bxhig - bxlow) / 2. + bxlow;
                     unsigned int n = map_h_ClusterStoN_vs_bx_fit_lxg[h_name_th2]->GetN();
+//  y: maximum of the fitted function
+// dy: FWHM
+//                    map_h_ClusterStoN_vs_bx_fit_lxg[h_name_th2]->SetPoint(n, bxmean, xmax_lxg);
+//                    map_h_ClusterStoN_vs_bx_fit_lxg[h_name_th2]->SetPointError(n, bxmean - bxlow, bxhig - bxmean, xmax_lxg - x1_lxg, x2_lxg - xmax_lxg);
+//                    map_h_ClusterStoN_vs_bx_fit_lpg[h_name_th2]->SetPoint(n, bxmean, xmax_lpg);
+//                    map_h_ClusterStoN_vs_bx_fit_lpg[h_name_th2]->SetPointError(n, bxmean - bxlow, bxhig - bxmean, xmax_lpg - x1_lpg, x2_lpg - xmax_lpg);
+//  y: maximum of the fitted function
+// dy: uncertainty on y from toy TF1 from random function parameters taken from the fit results
                     map_h_ClusterStoN_vs_bx_fit_lxg[h_name_th2]->SetPoint(n, bxmean, xmax_lxg);
-                    map_h_ClusterStoN_vs_bx_fit_lxg[h_name_th2]->SetPointError(n, bxmean - bxlow, bxhig - bxmean, xmax_lxg - x1_lxg, x2_lxg - xmax_lxg);
+                    map_h_ClusterStoN_vs_bx_fit_lxg[h_name_th2]->SetPointError(n, bxmean - bxlow, bxhig - bxmean, h_xmax.GetRMS() / 2., h_xmax.GetRMS() / 2.);
                     map_h_ClusterStoN_vs_bx_fit_lpg[h_name_th2]->SetPoint(n, bxmean, xmax_lpg);
-                    map_h_ClusterStoN_vs_bx_fit_lpg[h_name_th2]->SetPointError(n, bxmean - bxlow, bxhig - bxmean, xmax_lpg - x1_lpg, x2_lpg - xmax_lpg);
+                    map_h_ClusterStoN_vs_bx_fit_lpg[h_name_th2]->SetPointError(n, bxmean - bxlow, bxhig - bxmean, h_xmax2.GetRMS() / 2., h_xmax2.GetRMS() / 2.);
                     frame->SetName(("frame_" + h_name).c_str());
                     frame->SetTitle(("frame_" + h_name).c_str());
                     frame->Draw();

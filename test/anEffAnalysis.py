@@ -1,10 +1,14 @@
 import FWCore.ParameterSet.Config as cms
 import json
+import os
 
+
+CMSSW_BASE = os.environ['CMSSW_BASE']
 RUN_NUMBER = 299061
 N_FILES = 1
 SPLITTRAIN = 0
-INFOJSON = "/home/fynu/obondu/TRK/CMSSW_9_2_3_patch2/src/CalibTracker/HIPAnalysis/test/data/list_calibTrees_Fill-5950_Run-299061.json"
+INFOJSON = os.path.join(CMSSW_BASE, 'src/', 'CalibTracker/HIPAnalysis/', 'test/data/list_calibTrees_Fill-5950_Run-299061.json')
+
 
 data = None
 with open(INFOJSON, 'r') as f:
