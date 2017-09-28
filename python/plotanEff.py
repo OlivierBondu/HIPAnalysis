@@ -9,42 +9,7 @@ from array import array
 import th2_rebin_numpy
 import CalibTracker.HIPAnalysis.utils as utils
 import copy
-# File location
-# CRAB output dir: /storage/data/cms/store/user/obondu/CRAB_PrivateMC/crab_CalibTreesLayerAnalysis/170622_161745/0000/
-#histdir = "/home/fynu/obondu/TRK/CMSSW_9_2_3_patch2/src/CalibTracker/HIPAnalysis/test"
-#histfile = "histos.root"
-
-histdir = '/storage/data/cms/store/user/obondu/CRAB_PrivateMC/'
-
-# 296786
-#histfile = "crab_anEffAnalysis_run_296786_split_0/170814_153849/0000/histos_1.root"
-#histfile = "crab_anEffAnalysis_run_296786_split_12/170814_153853/0000/histos_1.root"
-#histfile = "crab_anEffAnalysis_run_296786_split_24/170814_153858/0000/histos_1.root"
-# 297722
-#histfile = "crab_anEffAnalysis_run_297722_split_0/170814_153820/0000/histos_1.root"
-#histfile = "crab_anEffAnalysis_run_297722_split_12/170814_153824/0000/histos_1.root"
-#histfile = "crab_anEffAnalysis_run_297722_split_24/170814_153829/0000/histos_1.root"
-# 299061
-#histfile = "crab_anEffAnalysis_run_299061_split_0/170814_153834/0000/histos_1.root"
-#histfile = "crab_anEffAnalysis_run_299061_split_12/170814_153839/0000/histos_1.root"
-histfile = "crab_anEffAnalysis_run_299061_split_24/170814_153844/0000/histos_1.root"
-# FIXME: waiting for 301165 300124
-
-### 297503
-###histfile = "crab_anEffAnalysis_run_297503_split_0/170814_153903/0000/histos_1.root"
-###histfile = "crab_anEffAnalysis_run_297503_split_12/170814_153907/0000/histos_1.root"
-###histfile = "crab_anEffAnalysis_run_297503_split_24/170814_153912/0000/histos_1.root"
-### 297100
-###histfile = "crab_anEffAnalysis_run_297100_split_0/170814_153806/0000/histos_1.root"
-###histfile = "crab_anEffAnalysis_run_297100_split_24/170814_153815/0000/histos_1.root"
-
-task = histfile.split('/')[0]
-run = int(task.split('_')[3])
-SPLITTRAIN = int(task.split('_')[5])
-plotdir = "170815_SoN_%i_%i" % (run, SPLITTRAIN)
-DEBUG = False
-print run, SPLITTRAIN, plotdir
-
+import bisect
 # ROOT setup
 import ROOT
 from ROOT import TFile, TCanvas, TLatex, TLegend
@@ -54,6 +19,59 @@ ROOT.gROOT.ProcessLine(".x setTDRStyle.C")
 ROOT.gStyle.SetOptTitle(0)
 ROOT.gStyle.SetOptStat(0)
 ROOT.TGaxis.SetMaxDigits(3)
+
+# File location
+# CRAB output dir: /storage/data/cms/store/user/obondu/CRAB_PrivateMC/crab_CalibTreesLayerAnalysis/170622_161745/0000/
+#histdir = "/home/fynu/obondu/TRK/CMSSW_9_2_3_patch2/src/CalibTracker/HIPAnalysis/test"
+#histfile = "histos.root"
+
+histdir = '/storage/data/cms/store/user/obondu/CRAB_PrivateMC/'
+histdir = '/home/fynu/obondu/TRK/CMSSW_9_2_3_patch2/src/CalibTracker/HIPAnalysis/python/'
+
+# 296786
+#color = ROOT.kBlue
+#histfile = "crab_anEffAnalysis_run_296786_split_0/170814_153849/0000/histos_1.root"
+#histfile = "crab_anEffAnalysis_run_296786_split_12/170814_153853/0000/histos_1.root"
+#histfile = "crab_anEffAnalysis_run_296786_split_24/170814_153858/0000/histos_1.root"
+# 297722
+#color = ROOT.kMagenta+1
+#histfile = "crab_anEffAnalysis_run_297722_split_0/170814_153820/0000/histos_1.root"
+#histfile = "crab_anEffAnalysis_run_297722_split_12/170814_153824/0000/histos_1.root"
+#histfile = "crab_anEffAnalysis_run_297722_split_24/170814_153829/0000/histos_1.root"
+# 299061
+#color = ROOT.kRed+1
+#histfile = "crab_anEffAnalysis_run_299061_split_0/170814_153834/0000/histos_1.root"
+#histfile = "crab_anEffAnalysis_run_299061_split_12/170814_153839/0000/histos_1.root"
+#histfile = "crab_anEffAnalysis_run_299061_split_24/170814_153844/0000/histos_1.root"
+# 301165
+color = ROOT.kGreen+1
+histfile = "../test/histos_run_301165_split_0.root"
+histfile = "../test/histos_run_301165_split_6.root"
+histfile = "../test/histos_run_301165_split_12.root"
+histfile = "../test/histos_run_301165_split_24.root"
+#histfile = "crab_anEffAnalysis_run_301165_split_0/170815_164724/0000/histos_1.root"
+#histfile = "crab_anEffAnalysis_run_301165_split_12/170815_164728/0000/histos_1.root"
+#histfile = "crab_anEffAnalysis_run_301165_split_24/170815_164733/0000/histos_1.root"
+#color = ROOT.kCyan+1
+# FIXME: waiting for 300235
+
+### 297503
+###histfile = "crab_anEffAnalysis_run_297503_split_0/170814_153903/0000/histos_1.root"
+###histfile = "crab_anEffAnalysis_run_297503_split_12/170814_153907/0000/histos_1.root"
+###histfile = "crab_anEffAnalysis_run_297503_split_24/170814_153912/0000/histos_1.root"
+### 297100
+###histfile = "crab_anEffAnalysis_run_297100_split_0/170814_153806/0000/histos_1.root"
+###histfile = "crab_anEffAnalysis_run_297100_split_24/170814_153815/0000/histos_1.root"
+
+#task = histfile.split('/')[0]
+#run = int(task.split('_')[3])
+#SPLITTRAIN = int(task.split('_')[5])
+task = histfile.split(".")[-2]
+run = int(task.split('_')[2])
+SPLITTRAIN = int(task.split('_')[4])
+plotdir = "170818_SoN_%i_%i" % (run, SPLITTRAIN)
+DEBUG = False
+print run, SPLITTRAIN, plotdir
 
 
 c1 = TCanvas()
@@ -116,8 +134,8 @@ print 'lumisections= ', lumisections
 
 runs = collections.OrderedDict()
 runs[run] = {
-    "color": ROOT.kBlue+1,
-    "marker": 24,
+    "color": color,
+    "marker": 2,
     "intL": "43.1 /pb",
     "initialLumi": "2.81e33 cm^{-2}/s",
     "date": "06/06/17",
@@ -140,72 +158,105 @@ keyList = f.GetKeyNames('')
 #        print f.Get(k).ClassName(), k
 
 plots = collections.OrderedDict()
+xplots = {}
 plots['h_ClusterStoN_vs_bx_zoom'] = {
         'histname': 'h_ClusterStoN_vs_bx',
         'class': 'TH2',
-        'y-min': 20,
+        'y-min': 10,
         'y-max': 70,
-        'x-min': 500,
-        'x-max': 1000,
+        'x-min': 0,
+        'x-max': 500,
         'x-custom': True,
         'x-title': 'bx number',
         'y-title': 'signal / noise',
+        'comments': 'mean and RMS',
+    }
+plots['h_ClusterStoN_vs_bx_fit_lpg_zoom'] = {
+        'histname': 'h_ClusterStoN_vs_bx_fit_lpg',
+        'class': 'TGraphAssymmErrors',
+        'y-min': 20,
+        'y-max': 30,
+        'x-min': 0,
+        'x-max': 500,
+        'x-custom': False,
+        'x-title': 'bx number',
+        'y-title': 'signal / noise',
+        'comments': 'max of Landau + Gaussian',
     }
 plots['h_ClusterStoN_vs_bx_fit_lxg_zoom'] = {
         'histname': 'h_ClusterStoN_vs_bx_fit_lxg',
         'class': 'TGraphAssymmErrors',
-        'y-min': 10,
-        'y-max': 70,
-        'x-min': 500,
-        'x-max': 1000,
+        'y-min': 20,
+        'y-max': 30,
+        'x-min': 0,
+        'x-max': 500,
         'x-custom': False,
         'x-title': 'bx number',
         'y-title': 'signal / noise',
+        'comments': 'max of Landau #otimes Gaussian',
     }
-#plots['h_ClusterStoN_vs_bx'] = {
-#        'histname': 'h_ClusterStoN_vs_bx',
-#        'class': 'TH2',
-#        'y-min': 20,
-#        'y-max': 70,
-#        'x-min': 0,
-#        'x-max': 3600,
-#        'x-custom': True,
-#        'x-title': 'bx number',
-#        'y-title': 'signal / noise',
-#    }
-#plots['h_ClusterStoN_vs_bx_fit_lxg'] = {
-#        'histname': 'h_ClusterStoN_vs_bx_fit_lxg',
-#        'class': 'TGraphAssymmErrors',
-#        'y-min': 10,
-#        'y-max': 70,
-#        'x-min': 0,
-#        'x-max': 3600,
-#        'x-custom': False,
-#        'x-title': 'bx number',
-#        'y-title': 'signal / noise',
-#    }
-#plots['ClusterStoN'] = {
-#        'histname': 'h_ClusterStoN',
-#        'class': 'TH1',
-#        'norm': '1',
-#        'x-min': 0,
-#        'x-max': 200,
-#        'xrebin': 5,
-#        'y-max': 0.255,
-#        'y-log': False,
-#        'legendColumns': 1,
-#        'x-title': 'signal / noise',
-#    }
-#plots['RooPlot_ClusterStoN'] = {
-#        'histname': 'frame',
-#        'class': 'RooPlot',
-#}
+plots['h_ClusterStoN_vs_bx'] = {
+        'histname': 'h_ClusterStoN_vs_bx',
+        'class': 'TH2',
+        'y-min': 10,
+        'y-max': 70,
+        'x-min': 0,
+        'x-max': 3600,
+        'x-custom': True,
+        'x-title': 'bx number',
+        'y-title': 'signal / noise',
+        'comments': 'mean and RMS',
+    }
+plots['h_ClusterStoN_vs_bx_fit_lxg'] = {
+        'histname': 'h_ClusterStoN_vs_bx_fit_lxg',
+        'class': 'TGraphAssymmErrors',
+        'y-min': 20,
+        'y-max': 30,
+        'x-min': 0,
+        'x-max': 3600,
+        'x-custom': False,
+        'x-title': 'bx number',
+        'y-title': 'signal / noise',
+        'comments': 'max of Landau #otimes Gaussian',
+    }
+plots['h_ClusterStoN_vs_bx_fit_lpg'] = {
+        'histname': 'h_ClusterStoN_vs_bx_fit_lpg',
+        'class': 'TGraphAssymmErrors',
+        'y-min': 20,
+        'y-max': 30,
+        'x-min': 0,
+        'x-max': 3600,
+        'x-custom': False,
+        'x-title': 'bx number',
+        'y-title': 'signal / noise',
+        'comments': 'max of Landau + Gaussian',
+    }
+plots['ClusterStoN'] = {
+        'histname': 'h_ClusterStoN',
+        'class': 'TH1',
+        'norm': '1',
+        'x-min': 0,
+        'x-max': 200,
+        'xrebin': 5,
+        'y-max': 0.255,
+        'y-log': False,
+        'legendColumns': 1,
+        'x-title': 'signal / noise',
+        'comments': '',
+    }
+plots['RooPlot_ClusterStoN'] = {
+        'histname': 'frame',
+        'class': 'RooPlot',
+        'comments': '',
+}
 bxs_th2 = ['0-3600']
 #bxs_th1 = bxs[0:min(5, len(bxs))]
 bxs_th1 = bxs[3:4]
 
 ymin = None
 ymax = None
+xylegend = [0.25, 0.80, 0.65, 0.90]
+ncollegend = 1
 for ilayer, layer in enumerate(layers):
     if DEBUG: print 'DEBUG:\tLayer= ', layer
     for iplot, plot in enumerate(plots):
@@ -224,8 +275,8 @@ for ilayer, layer in enumerate(layers):
                 print 'DEBUG:\tThis is a TH2 plot'
             atLeastOneHistoToDraw = False
             c2.cd()
-            legend = TLegend(0.25, 0.72, 0.80, 0.93, "")
-            legend.SetNColumns(2)
+            legend = TLegend(xylegend[0], xylegend[1], xylegend[2], xylegend[3], "")
+            legend.SetNColumns(ncollegend)
             legend.SetFillColor(ROOT.kWhite)
             legend.SetLineColor(ROOT.kWhite)
             legend.SetShadowColor(ROOT.kWhite)
@@ -260,15 +311,26 @@ for ilayer, layer in enumerate(layers):
                                 h.RebinX(plots[plot]['rebin'])
                                 if DEBUG:
                                     print "DEBUG:\trebinning"
+                            tmpsplitedges = copy.deepcopy(splitedges)
+                            if 'x-max' in plots[plot] and 'x-min' in plots[plot]:
+                                h.GetXaxis().SetRangeUser(plots[plot]['x-min'], plots[plot]['x-max'])
+                                if plots[plot]['x-min'] not in tmpsplitedges:
+                                    bisect.insort(tmpsplitedges, plots[plot]['x-min'])
+                                if plots[plot]['x-max'] not in tmpsplitedges:
+                                    bisect.insort(tmpsplitedges, plots[plot]['x-max'])
+                                i = bisect.bisect_left(tmpsplitedges, plots[plot]['x-min'])
+                                tmpsplitedges = tmpsplitedges[i:]
+                                i = bisect.bisect(tmpsplitedges, plots[plot]['x-max'])
+                                tmpsplitedges = tmpsplitedges[:i]
                             if plots[plot]['x-custom']:
                                 if DEBUG:
                                     print 'DEBUG:\tcustom rebinning (edges)'
-                                    print splitedges
-                                h = h.rebinX(splitedges)
+                                    print tmpsplitedges
+                                h = h.rebinX(tmpsplitedges)
                             p = h.ProfileX()
-                            p.SetLineColor(runs[run]['color'] + ilumisection + ibx*2)
-                            p.SetMarkerColor(runs[run]['color'] + ilumisection + ibx*2)
-                            p.SetMarkerStyle(runs[run]['marker'] + ilumisection + ibx*2)
+                            p.SetLineColor(runs[run]['color'])
+                            p.SetMarkerColor(runs[run]['color'])
+                            p.SetMarkerStyle(runs[run]['marker'])
                             p.GetYaxis().SetTitle(h.GetYaxis().GetTitle())
                             if 'x-title' in plots[plot]:
                                 p.GetXaxis().SetTitle(plots[plot]['x-title'])
@@ -282,8 +344,8 @@ for ilayer, layer in enumerate(layers):
                             ymax = p.GetMaximum()
                             if DEBUG:
                                 print 'DEBUG:\tymin, ymax= ', ymin, ymax
-                            if 'x-max' in plots[plot]:
-                                p.GetXaxis().SetRangeUser(plots[plot]['x-min'], plots[plot]['x-max'])
+#                            if 'x-max' in plots[plot] and 'x-min' in plots[plot]:
+#                                p.GetXaxis().SetRangeUser(plots[plot]['x-min'], plots[plot]['x-max'])
                             c2.SetGrid()
                             if plots[plot].get('y-log', False):
                                 c2.SetLogy(1)
@@ -293,7 +355,7 @@ for ilayer, layer in enumerate(layers):
                                 drawoptions += 'same'
                             legend.SetHeader(layer)
                             p.Draw(drawoptions)
-                            legend.AddEntry(p.GetName(), '%i %s bx:%s' % (run, runs[run]['comments'], bx), 'lp')
+                            legend.AddEntry(p.GetName(), '%i %s %s' % (run, runs[run]['comments'], plots[plot]['comments']), 'lp')
                             ROOT.gPad.Modified()
                             ROOT.gPad.Update()
                         # end of loop over histos
@@ -305,7 +367,8 @@ for ilayer, layer in enumerate(layers):
                 for i in xrange(0, len(edges), 2):
                     if i+1 >= len(edges):
                         continue
-                    if edges[i] < plots[plot]['x-min'] or edges[i+1] > plots[plot]['x-max']:
+                    if ('x-max' in plots[plot] and 'x-min' in plots[plot] and
+                            (edges[i] < plots[plot]['x-min'] or edges[i+1] > plots[plot]['x-max'])):
                         continue
                     x = array('f', [edges[i], edges[i+1], edges[i+1], edges[i]])
                     y = array('f', [ymin, ymin, ymax, ymax])
@@ -333,8 +396,8 @@ for ilayer, layer in enumerate(layers):
                 print 'DEBUG:\tThis is a TGraph plot'
             atLeastOneHistoToDraw = False
             c2.cd()
-            legend = TLegend(0.25, 0.72, 0.80, 0.93, "")
-            legend.SetNColumns(2)
+            legend = TLegend(xylegend[0], xylegend[1], xylegend[2], xylegend[3], "")
+            legend.SetNColumns(ncollegend)
             legend.SetFillColor(ROOT.kWhite)
             legend.SetLineColor(ROOT.kWhite)
             legend.SetShadowColor(ROOT.kWhite)
@@ -374,9 +437,9 @@ for ilayer, layer in enumerate(layers):
                                     print 'DEBUG:\tcustom rebinning (edges)'
                                     print splitedges
                                 h = h.rebinX(splitedges)
-                            h.SetLineColor(runs[run]['color'] + ilumisection + ibx*2)
-                            h.SetMarkerColor(runs[run]['color'] + ilumisection + ibx*2)
-                            h.SetMarkerStyle(runs[run]['marker'] + ilumisection + ibx*2)
+                            h.SetLineColor(runs[run]['color'])
+                            h.SetMarkerColor(runs[run]['color'])
+                            h.SetMarkerStyle(runs[run]['marker'])
                             h.GetYaxis().SetTitle(h.GetYaxis().GetTitle())
                             if 'x-title' in plots[plot]:
                                 h.GetXaxis().SetTitle(plots[plot]['x-title'])
@@ -390,8 +453,8 @@ for ilayer, layer in enumerate(layers):
                             ymax = h.GetMaximum()
                             if DEBUG:
                                 print 'DEBUG:\tymin, ymax= ', ymin, ymax
-                            if 'x-max' in plots[plot]:
-                                h.GetXaxis().SetRangeUser(plots[plot]['x-min'], plots[plot]['x-max'])
+                            if 'x-max' in plots[plot] and 'x-min' in plots[plot]:
+                                h.GetXaxis().SetLimits(plots[plot]['x-min'], plots[plot]['x-max'])
                             c2.SetGrid()
                             if plots[plot].get('y-log', False):
                                 c2.SetLogy(1)
@@ -401,7 +464,7 @@ for ilayer, layer in enumerate(layers):
                                 drawoptions += 'same'
                             legend.SetHeader(layer)
                             h.Draw(drawoptions)
-                            legend.AddEntry(h.GetName(), '%i %s bx:%s' % (run, runs[run]['comments'], bx), 'lp')
+                            legend.AddEntry(h.GetName(), '%i %s %s' % (run, runs[run]['comments'], plots[plot]['comments']), 'lp')
                             ROOT.gPad.Modified()
                             ROOT.gPad.Update()
                         # end of loop over histos
@@ -415,7 +478,8 @@ for ilayer, layer in enumerate(layers):
                 for i in xrange(0, len(edges), 2):
                     if i+1 >= len(edges):
                         continue
-                    if edges[i] < plots[plot]['x-min'] or edges[i+1] > plots[plot]['x-max']:
+                    if ('x-max' in plots[plot] and 'x-min' in plots[plot] and
+                            (edges[i] < plots[plot]['x-min'] or edges[i+1] > plots[plot]['x-max'])):
                         continue
                     x = array('f', [edges[i], edges[i+1], edges[i+1], edges[i]])
                     y = array('f', [ymin, ymin, ymax, ymax])
@@ -441,8 +505,8 @@ for ilayer, layer in enumerate(layers):
             if DEBUG:
                 print 'DEBUG:\tThis is a TH1 plot'
             c1.cd()
-            legend = TLegend(0.15, 0.72, 0.80, 0.93, "")
-            legend.SetNColumns(2)
+            legend = TLegend(xylegend[0], xylegend[1], xylegend[2], xylegend[3], "")
+            legend.SetNColumns(ncollegend)
             legend.SetFillColor(ROOT.kWhite)
             legend.SetLineColor(ROOT.kWhite)
             legend.SetShadowColor(ROOT.kWhite)
@@ -474,7 +538,7 @@ for ilayer, layer in enumerate(layers):
                             if DEBUG:
                                 print 'DEBUG:\t', layer, run, bx, h.ClassName(), k
     #                    h.RebinX(10)
-                            h.SetLineColor(runs[run]['color'] + ilumisection + ibx)
+                            h.SetLineColor(runs[run]['color'])
                             h.SetLineWidth(2)
                             norm = plots[plot].get('norm', None)
                             if 'x-title' in plots[plot]:
@@ -505,7 +569,7 @@ for ilayer, layer in enumerate(layers):
                             if 'legendColumns' in plots[plot]:
                                 legend.SetNColumns(plots[plot]['legendColumns'])
                             h.Draw(drawoptions)
-                            legend.AddEntry(h.GetName(), '%i %s bx:%s' % (run, runs[run]['comments'], bx), 'l')
+                            legend.AddEntry(h.GetName(), '%i %s %s bxs:%s' % (run, runs[run]['comments'], plots[plot]['comments'], bx), 'l')
                             ROOT.gPad.Modified()
                             ROOT.gPad.Update()
                         # end of loop over histos
@@ -534,8 +598,8 @@ for ilayer, layer in enumerate(layers):
             if DEBUG:
                 print 'DEBUG:\tThis is a RooPlot plot'
             c1.cd()
-            legend = TLegend(0.15, 0.72, 0.80, 0.93, "")
-            legend.SetNColumns(2)
+            legend = TLegend(xylegend[0], xylegend[1], xylegend[2], xylegend[3], "")
+            legend.SetNColumns(ncollegend)
             legend.SetFillColor(ROOT.kWhite)
             legend.SetLineColor(ROOT.kWhite)
             legend.SetShadowColor(ROOT.kWhite)
@@ -569,7 +633,7 @@ for ilayer, layer in enumerate(layers):
                             else:
                                 c1.SetLogy(0)
                             h.Draw(drawoptions)
-                            legend.AddEntry(h.GetName(), '%i %s bx:%s' % (run, runs[run]['comments'], bx), 'l')
+                            legend.AddEntry(p.GetName(), '%i %s %s' % (run, runs[run]['comments'], plots[plot]['comments']), 'l')
                             ROOT.gPad.Modified()
                             ROOT.gPad.Update()
                         # end of loop over histos

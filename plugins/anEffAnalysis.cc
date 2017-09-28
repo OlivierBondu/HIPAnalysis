@@ -55,6 +55,7 @@
 #include "RooGaussian.h"
 #include "RooLandau.h"
 #include "RooFFTConvPdf.h"
+#include "RooFitResult.h"
 
 // C++ includes
 #include <iostream>
@@ -406,10 +407,11 @@ void anEffAnalysis::fitAll()
                 // Set #bins to be used for FFT sampling to 10000
                 StoN.setBins(10000, "cache");
                 RooFFTConvPdf model("model", "landau (X) gauss", StoN, landau, gaussian) ;
+                RooFitResult* r = 0;
                 if (m_verbose_fit) {
-                    model.fitTo(datahist);
+                    r = model.fitTo(datahist, RooFit::Save());
                 } else {
-                    model.fitTo(datahist, RooFit::PrintLevel(-1));
+                    r = model.fitTo(datahist, RooFit::PrintLevel(-1), RooFit::Save());
                 }
                 model.plotOn(frame, RooFit::LineColor(kBlue));
                 // Get the maxima
@@ -423,6 +425,21 @@ void anEffAnalysis::fitAll()
                     std::cout << "From TF1, maximum at (x, y) = (" << xmax_lxg << " , " << ymax_lxg << ")" << std::endl;
                     std::cout << "From TF1, FWHM at (x1, x2) = (" << x1_lxg << " , " << x2_lxg << ")" << std::endl;
                 }
+                // Now let's get some uncertainty on xmax
+                TH1F h_xmax("h_xmax", "h_xmax", 5000, 0, 50);
+                int ntoys = 500;
+                RooArgSet* model_params = model.getParameters(RooArgList(StoN));
+                model_params->writeToStream(std::cout, true);
+                for (int i = 0 ; i < ntoys ; i++) {
+                    // get a randomized set of parameters for the model from the fit results
+                    RooArgList randomizedParams = r->randomizePars();
+                    *model_params = randomizedParams;
+                    TF1 *lxg_toy = model.asTF(RooArgList(StoN));
+                    h_xmax.Fill(lxg_toy->GetMaximumX());
+                    lxg_toy = 0;
+                }
+                r = 0;
+                
 
                 // Try landau + a gaussian
                 RooRealVar meanG2("meanG2", "meanG2", 30, 10, 50);
@@ -434,9 +451,9 @@ void anEffAnalysis::fitAll()
                 RooRealVar x("x", "x", 0.1, 0, 0.4);
                 RooAddPdf model2("model2", "model2", gaussian2, landau2, x);
                 if (m_verbose_fit) {
-                    model2.fitTo(datahist);
+                    r = model2.fitTo(datahist, RooFit::Save());
                 } else {
-                    model2.fitTo(datahist, RooFit::PrintLevel(-1));
+                    r = model2.fitTo(datahist, RooFit::PrintLevel(-1), RooFit::Save());
                 }
                 model2.plotOn(frame, RooFit::LineColor(kRed));
                 // Get the maxima
@@ -455,6 +472,19 @@ void anEffAnalysis::fitAll()
                     std::cout << "From TF1, maximum at (x, y) = (" << xmax_lpg << " , " << ymax_lpg << ")" << std::endl;
                     std::cout << "From TF1, FWHM at (x1, x2) = (" << x1_lpg << " , " << x2_lpg << ")" << std::endl;
                 }
+                // Now let's get some uncertainty on xmax
+                TH1F h_xmax2("h_xmax2", "h_xmax2", 5000, 0, 50);
+                RooArgSet* model2_params = model2.getParameters(RooArgList(StoN));
+                model2_params->writeToStream(std::cout, true);
+                for (int i = 0 ; i < ntoys ; i++) {
+                    // get a randomized set of parameters for the model from the fit results
+                    RooArgList randomizedParams2 = r->randomizePars();
+                    *model2_params = randomizedParams2;
+                    TF1 *lpg_toy = model2.asTF(RooArgList(StoN));
+                    h_xmax2.Fill(lpg_toy->GetMaximumX());
+                    lpg_toy = 0;
+                }
+                r = 0;
 
                 // Redraw data on top and print / store everything
                 datahist.plotOn(frame);
@@ -475,12 +505,12 @@ void anEffAnalysis::fitAll()
 //                    map_h_ClusterStoN_vs_bx_fit_lxg[h_name_th2]->SetPointError(n, bxmean - bxlow, bxhig - bxmean, xmax_lxg - x1_lxg, x2_lxg - xmax_lxg);
 //                    map_h_ClusterStoN_vs_bx_fit_lpg[h_name_th2]->SetPoint(n, bxmean, xmax_lpg);
 //                    map_h_ClusterStoN_vs_bx_fit_lpg[h_name_th2]->SetPointError(n, bxmean - bxlow, bxhig - bxmean, xmax_lpg - x1_lpg, x2_lpg - xmax_lpg);
-                    std::cout << "meanL: " << meanL.getVal() << " +- " << meanL.getError() << std::endl;
-                    std::cout << "meanL2: " << meanL2.getVal() << " +- " << meanL2.getError() << std::endl;
-                    map_h_ClusterStoN_vs_bx_fit_lxg[h_name_th2]->SetPoint(n, bxmean, meanL.getVal());
-                    map_h_ClusterStoN_vs_bx_fit_lxg[h_name_th2]->SetPointError(n, bxmean - bxlow, bxhig - bxmean, meanL.getError(), meanL.getError());
-                    map_h_ClusterStoN_vs_bx_fit_lpg[h_name_th2]->SetPoint(n, bxmean, meanL2.getVal());
-                    map_h_ClusterStoN_vs_bx_fit_lpg[h_name_th2]->SetPointError(n, bxmean - bxlow, bxhig - bxmean, meanL2.getError(), meanL2.getError());
+//  y: maximum of the fitted function
+// dy: uncertainty on y from toy TF1 from random function parameters taken from the fit results
+                    map_h_ClusterStoN_vs_bx_fit_lxg[h_name_th2]->SetPoint(n, bxmean, xmax_lxg);
+                    map_h_ClusterStoN_vs_bx_fit_lxg[h_name_th2]->SetPointError(n, bxmean - bxlow, bxhig - bxmean, h_xmax.GetRMS() / 2., h_xmax.GetRMS() / 2.);
+                    map_h_ClusterStoN_vs_bx_fit_lpg[h_name_th2]->SetPoint(n, bxmean, xmax_lpg);
+                    map_h_ClusterStoN_vs_bx_fit_lpg[h_name_th2]->SetPointError(n, bxmean - bxlow, bxhig - bxmean, h_xmax2.GetRMS() / 2., h_xmax2.GetRMS() / 2.);
                     frame->SetName(("frame_" + h_name).c_str());
                     frame->SetTitle(("frame_" + h_name).c_str());
                     frame->Draw();
