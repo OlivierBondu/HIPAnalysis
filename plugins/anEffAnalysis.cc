@@ -300,7 +300,9 @@ anEffAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
                     std::cout << "Filling histograms for " << h_name << std::endl;
                     // ClusterStoN is the S / N NOT corrected for the track angle
                     // we need to correct it by cosRZ = pz / p
-                    // (see 
+                    // (see https://github.com/cms-sw/cmssw/blob/d3284753b8b09f5a37e224c05eb4e9588871c3c1/DQM/SiStripMonitorTrack/src/SiStripMonitorTrack.cc#L1388
+                    // http://cmsdoxygen.web.cern.ch/cmsdoxygen/CMSSW_9_2_9/doc/html/dd/de2/classLocalTrajectoryParameters.html#a229a7c88e4cf4ccfff41a7b4e507f4b6
+                    // https://github.com/cms-sw/cmssw/blob/b257262e180277e5805c8cb4c8ce8ea905906d08/CalibTracker/SiStripHitEfficiency/src/HitEff.cc#L498-L499 ) 
                     // unfortunately the local pz is not stored
                     // fortunately, we have and px = pz * locDxDz and TrajLocAngleX = atan(locDxDz)
                     // so we have cosRZ = 1 / sqrt(1 + pow(tan(TrajLocAngleX), 2) + pow(tan(TrajLocAngleY), 2))
