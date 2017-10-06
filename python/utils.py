@@ -49,7 +49,7 @@ def connect_to_lxplus(username):
         is_ticket_valid = False
 
     if not(is_ticket_valid):
-        print 'Running kinit, please enter your lxplus password'
+        print 'Running kinit, please enter your lxplus password for username %s' % username
         p = subprocess.Popen(['kinit', '%s@CERN.CH' % username])
         p.communicate()
     return
