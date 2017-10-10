@@ -69,7 +69,7 @@ histfile = "../test/histos_run_301165_split_24.root"
 task = histfile.split(".")[-2]
 run = int(task.split('_')[2])
 SPLITTRAIN = int(task.split('_')[4])
-plotdir = "170818_SoN_%i_%i" % (run, SPLITTRAIN)
+plotdir = "171006_SoN_%i_%i" % (run, SPLITTRAIN)
 DEBUG = False
 print run, SPLITTRAIN, plotdir
 
@@ -175,7 +175,7 @@ plots['h_ClusterStoN_vs_bx_fit_lpg_zoom'] = {
         'histname': 'h_ClusterStoN_vs_bx_fit_lpg',
         'class': 'TGraphAssymmErrors',
         'y-min': 20,
-        'y-max': 30,
+        'y-max': 26,
         'x-min': 0,
         'x-max': 500,
         'x-custom': False,
@@ -187,7 +187,7 @@ plots['h_ClusterStoN_vs_bx_fit_lxg_zoom'] = {
         'histname': 'h_ClusterStoN_vs_bx_fit_lxg',
         'class': 'TGraphAssymmErrors',
         'y-min': 20,
-        'y-max': 30,
+        'y-max': 26,
         'x-min': 0,
         'x-max': 500,
         'x-custom': False,
@@ -211,7 +211,7 @@ plots['h_ClusterStoN_vs_bx_fit_lxg'] = {
         'histname': 'h_ClusterStoN_vs_bx_fit_lxg',
         'class': 'TGraphAssymmErrors',
         'y-min': 20,
-        'y-max': 30,
+        'y-max': 26,
         'x-min': 0,
         'x-max': 3600,
         'x-custom': False,
@@ -223,7 +223,7 @@ plots['h_ClusterStoN_vs_bx_fit_lpg'] = {
         'histname': 'h_ClusterStoN_vs_bx_fit_lpg',
         'class': 'TGraphAssymmErrors',
         'y-min': 20,
-        'y-max': 30,
+        'y-max': 26,
         'x-min': 0,
         'x-max': 3600,
         'x-custom': False,
