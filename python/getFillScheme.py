@@ -15,6 +15,8 @@ def get_options():
     parser.add_argument('--run', action='store', dest='run', default=[296173], nargs='+', type=int,
                         help='Run for which the BX has to be fetched')
     parser.add_argument('-n', '--username', dest='username', help='Remote lxplus username (local username by default)')
+    parser.add_argument('--suffix', action='store', dest='suffix', default='', type=str,
+                        help='Suffix string to look for in calibtree json file name')
     options = parser.parse_args()
     if options.username is None:
         import pwd, os
@@ -109,9 +111,10 @@ def prepareSchemeForRealUse(outfile, data, scheme, bx_scheme_name):
 if __name__ == '__main__':
     options = get_options()
     username = options.username
+    suffix = options.suffix
     for run in options.run:
         lhcfill = utils.get_fill_number(run, username)
-        outfile = utils.get_outfile(run, lhcfill)
+        outfile = utils.get_outfile(run, lhcfill, suffix)
         data = None
         with open(outfile, 'r') as f:
             data = json.load(f)

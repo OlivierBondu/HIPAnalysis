@@ -33,6 +33,9 @@ def getCalibTreesList(username, run, path, suffix):
         return
 
     prefix = '/eos/cms'
+    # add a / at the end of the path if there isn't one
+    if path[-1] != '/':
+        path += '/'
     fullpath = prefix + path
     utils.connect_to_lxplus(username)
     print "Listing the available calibTrees via eos ls on lxplus" 

@@ -5,15 +5,17 @@ import ast
 import os
 
 
-def get_outfile(run, lhcfill):
+def get_outfile(run, lhcfill, suffix=''):
     CMSSW_BASE = os.environ['CMSSW_BASE']
     outfilename = None
     outpath = os.path.join(CMSSW_BASE, 'src/', 'CalibTracker/HIPAnalysis', 'test/data')
     noFile = False
+    if len(suffix) > 0 and (suffix[0] is not '_'):
+        suffix = '_' + suffix
     if lhcfill:
-        outfilename = os.path.join(outpath, 'list_calibTrees_Fill-%i_Run-%i.json' % (lhcfill, run))
+        outfilename = os.path.join(outpath, 'list_calibTrees_Fill-%i_Run-%i%s.json' % (lhcfill, run, suffix))
     else:
-        outfilename = [os.path.join(outpath, f) for f in os.listdir(outpath) if ('list_calibTrees_Fill' in f and 'Run-%i.json' % run in f)]
+        outfilename = [os.path.join(outpath, f) for f in os.listdir(outpath) if ('list_calibTrees_Fill' in f and 'Run-%i%s.json' % (run, suffix) in f)]
         if len(outfilename) == 0:
             noFile = True
         else:
